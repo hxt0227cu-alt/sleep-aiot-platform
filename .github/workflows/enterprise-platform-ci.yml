@@ -380,7 +380,7 @@ jobs:
   # docs/k8s-runtime-smoke.md for the coverage matrix and how to read results.
   k8s-runtime-smoke:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && secrets.KUBE_CONFIG != ''
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-kubectl@v4
@@ -388,6 +388,10 @@ jobs:
         env:
           KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         run: |
+          if [ -z "$KUBE_CONFIG" ]; then
+            echo "::error::KUBE_CONFIG secret is not configured. Add a kubeconfig for a non-production cluster to repository secrets before running this job."
+            exit 1
+          fi
           mkdir -p "$HOME/.kube"
           printf '%s' "$KUBE_CONFIG" > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
