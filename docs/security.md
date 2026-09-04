@@ -15,10 +15,10 @@ and is verified by CI on every push.
   anywhere in the repository fail the build.
 - **Infrastructure misconfigurations (Trivy `misconfig`)**: any KSV finding
   fails the build (hard gate). The only findings that ever appear are the
-  documented by-design exceptions, which are exempted **inline** with
-  `#trivy:ignore` comments on the exact resources (see below). Any new KSV
-  finding — for example a future manifest that forgets the hardening — turns
-  the `security` job red, so the hardening cannot silently regress.
+  documented by-design exceptions, which are whitelisted by an explicit
+  (target file + rule) assertion in CI (see below). Any new KSV finding — for
+  example a future manifest that forgets the hardening — turns the `security`
+  job red, so the hardening cannot silently regress.
 - **Repeatedly verified**: these scans run on every push to `main` and on every
   pull request touching `services/**`, `platform/**` or the workflow itself.
 
