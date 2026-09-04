@@ -216,7 +216,13 @@ try {
       error: result.error ?? null,
     }, null, 2));
   } else {
-    console.log(JSON.stringify({ outputPath, runId, status: result.status, passed: result.passed }, null, 2));
+    console.log(JSON.stringify({
+      outputPath,
+      runId,
+      status: result.status,
+      passed: result.passed,
+      error: result.error ?? null,
+    }, null, 2));
   }
 }
 
