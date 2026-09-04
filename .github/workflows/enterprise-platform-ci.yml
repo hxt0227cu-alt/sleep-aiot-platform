@@ -99,7 +99,29 @@ jobs:
           pnpm run type-check
           node --check test/rebalance-smoke.cjs
           node --check test/clickhouse-dedup-probe.cjs
-          node ../../platform/load-tests/verify-rebalance-evidence.js
+      - name: Run local rebalance fault E2E (Kafka + Schema Registry + ClickHouse)
+        working-directory: services/realtime-worker
+        env:
+          EVIDENCE_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+          CLICKHOUSE_PASSWORD: replace-with-random-local-password
+          WORKER_IMAGE: local-realtime-worker
+        run: |
+          docker build -t local-realtime-worker .
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            up -d --build kafka kafka-init clickhouse clickhouse-init schema-registry schema-contract-init
+          node test/rebalance-smoke.cjs
+      - name: Stop rebalance test services
+        if: always()
+        working-directory: services/realtime-worker
+        run: |
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            down -v
 
   flink-telemetry-job:
     runs-on: ubuntu-latest
