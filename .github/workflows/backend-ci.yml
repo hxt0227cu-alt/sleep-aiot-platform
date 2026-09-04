@@ -173,38 +173,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        if: ${{ secrets.DOCKER_USERNAME != '' }}
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        if: ${{ secrets.DOCKER_USERNAME != '' }}
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push immutable image
-        id: build
-        if: ${{ secrets.DOCKER_USERNAME != '' }}
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: sleep-monitor/backend:${{ github.sha }}
-          provenance: mode=max
-          sbom: true
-          cache-from: type=registry,ref=sleep-monitor/backend:buildcache
-          cache-to: type=registry,ref=sleep-monitor/backend:buildcache,mode=max
-
-      - name: Install Cosign
-        if: ${{ secrets.DOCKER_USERNAME != '' }}
-        uses: sigstore/cosign-installer@v3
-
-      - name: Sign image by digest
-        if: ${{ secrets.DOCKER_USERNAME != '' }}
-        run: cosign sign --yes sleep-monitor/backend@${{ steps.build.outputs.digest }}
+      - name: Publish and sign backend image (skipped when Docker secrets absent)
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+            echo "DOCKER_USERNAME/DOCKER_PASSWORD not configured; skipping image publish"
+            exit 0
+          fi
+          docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+          docker buildx create --use >/dev/null 2>&1 || true
+          docker buildx build \
+            --push \
+            --provenance mode=max \
+            --sbom \
+            --cache-from type=registry,ref=sleep-monitor/backend:buildcache \
+            --cache-to type=registry,ref=sleep-monitor/backend:buildcache,mode=max \
+            -t "sleep-monitor/backend:${{ github.sha }}" \
+            -f backend/Dockerfile backend
+          cosign sign --yes "sleep-monitor/backend:${{ github.sha }}"
 
   deploy-staging:
     needs: build-and-push
@@ -215,15 +204,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy immutable image to staging
-        if: ${{ secrets.STAGING_HOST != '' }}
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USER }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          script: |
+      - name: Deploy immutable image to staging (skipped when secrets absent)
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$STAGING_HOST" ] || [ -z "$STAGING_USER" ] || [ -z "$STAGING_SSH_KEY" ]; then
+            echo "STAGING secrets not configured; skipping staging deploy"
+            exit 0
+          fi
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$STAGING_SSH_KEY" > "$HOME/.ssh/deploy_key" && chmod 600 "$HOME/.ssh/deploy_key"
+          ssh -i "$HOME/.ssh/deploy_key" -o StrictHostKeyChecking=no \
+            "$STAGING_USER@$STAGING_HOST" '
             cd /opt/sleep-monitor
             IMAGE_TAG=${{ github.sha }} docker compose pull backend
             IMAGE_TAG=${{ github.sha }} docker compose up -d --no-deps backend
             curl --fail --retry 12 --retry-delay 5 http://127.0.0.1:3000/api/health/ready
+          '
