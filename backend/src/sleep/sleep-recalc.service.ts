@@ -48,7 +48,9 @@ export class SleepRecalcService {
     };
 
     this.recalcTasks.set(taskId, task);
-    this.logger.log(`重算任务创建: ${taskId}, algorithm=${request.algorithmVersion}, range=${request.dateRange.start}~${request.dateRange.end}`);
+    this.logger.log(
+      `重算任务创建: ${taskId}, algorithm=${request.algorithmVersion}, range=${request.dateRange.start}~${request.dateRange.end}`,
+    );
 
     // 异步执行重算
     this.executeRecalc(task).catch((err) => {
@@ -86,17 +88,24 @@ export class SleepRecalcService {
         const record = recordsToRecalc[i];
 
         try {
-          const result = await this.recalcSingleRecord(record, task.algorithmVersion);
+          const result = await this.recalcSingleRecord(
+            record,
+            task.algorithmVersion,
+          );
           results.push(result);
           task.processedRecords++;
         } catch (error) {
           task.failedRecords++;
-          this.logger.error(`重算记录失败: record=${record.id}, error=${error.message}`);
+          this.logger.error(
+            `重算记录失败: record=${record.id}, error=${error.message}`,
+          );
         }
 
         // 更新进度（每100条）
         if (i % 100 === 0 && i > 0) {
-          this.logger.debug(`重算进度: ${task.taskId}, ${task.processedRecords}/${task.totalRecords}`);
+          this.logger.debug(
+            `重算进度: ${task.taskId}, ${task.processedRecords}/${task.totalRecords}`,
+          );
         }
       }
 
@@ -107,7 +116,7 @@ export class SleepRecalcService {
 
       this.logger.log(
         `重算任务完成: ${task.taskId}, total=${task.totalRecords}, ` +
-        `processed=${task.processedRecords}, failed=${task.failedRecords}`,
+          `processed=${task.processedRecords}, failed=${task.failedRecords}`,
       );
     } catch (error) {
       task.status = 'failed';
@@ -140,7 +149,10 @@ export class SleepRecalcService {
   /**
    * 重算单条睡眠记录
    */
-  private async recalcSingleRecord(record: SleepRecord, newAlgorithmVersion: string): Promise<RecalcResult> {
+  private async recalcSingleRecord(
+    record: SleepRecord,
+    newAlgorithmVersion: string,
+  ): Promise<RecalcResult> {
     // 实际应调用算法服务重算
     // const newResult = await this.algorithmService.calculateSleepStage(record.rawData, newAlgorithmVersion);
 
@@ -161,10 +173,20 @@ export class SleepRecalcService {
   /**
    * 生成重算结果摘要
    */
-  private generateResultSummary(results: RecalcResult[], task: RecalcTask): RecalcResultSummary {
-    const totalChanged = results.filter((r) => r.previousSleepScore !== r.newSleepScore).length;
-    const scoreDiffs = results.map((r) => Math.abs(r.newSleepScore - r.previousSleepScore));
-    const avgScoreDiff = scoreDiffs.length > 0 ? scoreDiffs.reduce((a, b) => a + b, 0) / scoreDiffs.length : 0;
+  private generateResultSummary(
+    results: RecalcResult[],
+    task: RecalcTask,
+  ): RecalcResultSummary {
+    const totalChanged = results.filter(
+      (r) => r.previousSleepScore !== r.newSleepScore,
+    ).length;
+    const scoreDiffs = results.map((r) =>
+      Math.abs(r.newSleepScore - r.previousSleepScore),
+    );
+    const avgScoreDiff =
+      scoreDiffs.length > 0
+        ? scoreDiffs.reduce((a, b) => a + b, 0) / scoreDiffs.length
+        : 0;
 
     return {
       totalRecords: results.length,
@@ -196,7 +218,10 @@ export class SleepRecalcService {
     if (status) {
       tasks = tasks.filter((t) => t.status === status);
     }
-    return tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return tasks.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
   }
 
   /**
@@ -219,11 +244,19 @@ export class SleepRecalcService {
   /**
    * 获取重算进度
    */
-  getRecalcProgress(taskId: string): { progress: number; processed: number; total: number; failed: number } | null {
+  getRecalcProgress(taskId: string): {
+    progress: number;
+    processed: number;
+    total: number;
+    failed: number;
+  } | null {
     const task = this.recalcTasks.get(taskId);
     if (!task) return null;
 
-    const progress = task.totalRecords > 0 ? (task.processedRecords / task.totalRecords) * 100 : 0;
+    const progress =
+      task.totalRecords > 0
+        ? (task.processedRecords / task.totalRecords) * 100
+        : 0;
     return {
       progress: Math.round(progress * 100) / 100,
       processed: task.processedRecords,
@@ -248,7 +281,8 @@ export interface RecalcRequest {
 /**
  * 重算任务状态
  */
-export type RecalcTaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type RecalcTaskStatus =
+  'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 /**
  * 重算任务
@@ -295,7 +329,11 @@ interface RecalcResult {
   newAlgorithmVersion: string;
   previousSleepScore: number;
   newSleepScore: number;
-  sleepStageChanges: Array<{ stage: string; previousDuration: number; newDuration: number }>;
+  sleepStageChanges: Array<{
+    stage: string;
+    previousDuration: number;
+    newDuration: number;
+  }>;
   recalculatedAt: string;
 }
 

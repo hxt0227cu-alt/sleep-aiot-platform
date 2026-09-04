@@ -38,7 +38,9 @@ export class ParamPackageBuilderService {
       },
       parameters: config.parameters,
       metadata: {
-        name: config.name || `${config.algorithmType} 参数包 ${config.paramVersion}`,
+        name:
+          config.name ||
+          `${config.algorithmType} 参数包 ${config.paramVersion}`,
         description: config.description || '',
         author: config.author || 'system',
         createdAt: new Date().toISOString(),
@@ -58,23 +60,31 @@ export class ParamPackageBuilderService {
     };
 
     // 计算签名
-    paramPackage.signature.signatureValue = this.calculateSignature(paramPackage);
+    paramPackage.signature.signatureValue =
+      this.calculateSignature(paramPackage);
 
-    this.logger.log(`参数包构建完成: ${packageId}, algorithm=${config.algorithmType}, version=${config.paramVersion}`);
+    this.logger.log(
+      `参数包构建完成: ${packageId}, algorithm=${config.algorithmType}, version=${config.paramVersion}`,
+    );
     return paramPackage;
   }
 
   /**
    * 验证参数包签名
    */
-  verifySignature(paramPackage: AlgorithmParamPackage, publicKey?: string): boolean {
+  verifySignature(
+    paramPackage: AlgorithmParamPackage,
+    publicKey?: string,
+  ): boolean {
     try {
       const signatureToVerify = paramPackage.signature.signatureValue;
       const packageWithoutSignature = {
         ...paramPackage,
         signature: { ...paramPackage.signature, signatureValue: '' },
       };
-      const expectedSignature = this.calculateSignature(packageWithoutSignature);
+      const expectedSignature = this.calculateSignature(
+        packageWithoutSignature,
+      );
 
       // 开发模式：简单比较
       if (!publicKey) {
@@ -95,24 +105,42 @@ export class ParamPackageBuilderService {
   /**
    * 验证固件兼容性
    */
-  checkFirmwareCompatibility(paramPackage: AlgorithmParamPackage, firmwareVersion: string, deviceModel?: string): {
+  checkFirmwareCompatibility(
+    paramPackage: AlgorithmParamPackage,
+    firmwareVersion: string,
+    deviceModel?: string,
+  ): {
     compatible: boolean;
     reason?: string;
   } {
-    const { minVersion, maxVersion, supportedModels } = paramPackage.firmwareCompatibility;
+    const { minVersion, maxVersion, supportedModels } =
+      paramPackage.firmwareCompatibility;
 
     // 版本比较
     if (this.compareVersions(firmwareVersion, minVersion) < 0) {
-      return { compatible: false, reason: `固件版本 ${firmwareVersion} 低于最低要求 ${minVersion}` };
+      return {
+        compatible: false,
+        reason: `固件版本 ${firmwareVersion} 低于最低要求 ${minVersion}`,
+      };
     }
 
     if (maxVersion && this.compareVersions(firmwareVersion, maxVersion) > 0) {
-      return { compatible: false, reason: `固件版本 ${firmwareVersion} 高于最高支持 ${maxVersion}` };
+      return {
+        compatible: false,
+        reason: `固件版本 ${firmwareVersion} 高于最高支持 ${maxVersion}`,
+      };
     }
 
     // 设备型号检查
-    if (supportedModels.length > 0 && deviceModel && !supportedModels.includes(deviceModel)) {
-      return { compatible: false, reason: `设备型号 ${deviceModel} 不在支持列表中` };
+    if (
+      supportedModels.length > 0 &&
+      deviceModel &&
+      !supportedModels.includes(deviceModel)
+    ) {
+      return {
+        compatible: false,
+        reason: `设备型号 ${deviceModel} 不在支持列表中`,
+      };
     }
 
     return { compatible: true };
@@ -121,19 +149,30 @@ export class ParamPackageBuilderService {
   /**
    * 验证参数包完整性
    */
-  validatePackage(paramPackage: AlgorithmParamPackage): { valid: boolean; errors: string[] } {
+  validatePackage(paramPackage: AlgorithmParamPackage): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!paramPackage.packageId) errors.push('缺少 packageId');
     if (!paramPackage.schemaVersion) errors.push('缺少 schemaVersion');
     if (!paramPackage.algorithmType) errors.push('缺少 algorithmType');
     if (!paramPackage.paramVersion) errors.push('缺少 paramVersion');
-    if (!paramPackage.firmwareCompatibility?.minVersion) errors.push('缺少最低固件版本要求');
-    if (!paramPackage.parameters || Object.keys(paramPackage.parameters).length === 0) errors.push('参数内容为空');
+    if (!paramPackage.firmwareCompatibility?.minVersion)
+      errors.push('缺少最低固件版本要求');
+    if (
+      !paramPackage.parameters ||
+      Object.keys(paramPackage.parameters).length === 0
+    )
+      errors.push('参数内容为空');
     if (!paramPackage.signature?.signatureValue) errors.push('缺少数字签名');
 
     // 签名验证
-    if (paramPackage.signature?.signatureValue && !this.verifySignature(paramPackage)) {
+    if (
+      paramPackage.signature?.signatureValue &&
+      !this.verifySignature(paramPackage)
+    ) {
       errors.push('数字签名验证失败');
     }
 
@@ -143,8 +182,15 @@ export class ParamPackageBuilderService {
   /**
    * 生成参数包差异对比
    */
-  generateDiff(oldPackage: AlgorithmParamPackage, newPackage: AlgorithmParamPackage): ParamPackageDiff {
-    const changedParams: Array<{ key: string; oldValue: unknown; newValue: unknown }> = [];
+  generateDiff(
+    oldPackage: AlgorithmParamPackage,
+    newPackage: AlgorithmParamPackage,
+  ): ParamPackageDiff {
+    const changedParams: Array<{
+      key: string;
+      oldValue: unknown;
+      newValue: unknown;
+    }> = [];
     const addedParams: string[] = [];
     const removedParams: string[] = [];
 
@@ -154,8 +200,15 @@ export class ParamPackageBuilderService {
     for (const key of newKeys) {
       if (!oldKeys.has(key)) {
         addedParams.push(key);
-      } else if (JSON.stringify(oldPackage.parameters[key]) !== JSON.stringify(newPackage.parameters[key])) {
-        changedParams.push({ key, oldValue: oldPackage.parameters[key], newValue: newPackage.parameters[key] });
+      } else if (
+        JSON.stringify(oldPackage.parameters[key]) !==
+        JSON.stringify(newPackage.parameters[key])
+      ) {
+        changedParams.push({
+          key,
+          oldValue: oldPackage.parameters[key],
+          newValue: newPackage.parameters[key],
+        });
       }
     }
 
@@ -171,7 +224,9 @@ export class ParamPackageBuilderService {
       changedParams,
       addedParams,
       removedParams,
-      firmwareCompatibilityChanged: JSON.stringify(oldPackage.firmwareCompatibility) !== JSON.stringify(newPackage.firmwareCompatibility),
+      firmwareCompatibilityChanged:
+        JSON.stringify(oldPackage.firmwareCompatibility) !==
+        JSON.stringify(newPackage.firmwareCompatibility),
     };
   }
 

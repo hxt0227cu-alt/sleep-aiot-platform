@@ -32,8 +32,12 @@ export class CertSignService {
    * @param request 证书签发请求（仅含 CSR，无私钥）
    * @returns 签发的证书 PEM + 证书链
    */
-  async signDeviceCertificate(request: CertSignRequestDto): Promise<SignedCertificateResult> {
-    this.logger.log(`证书签发请求: device=${request.deviceId}, tenant=${request.tenantId || 'default'}`);
+  async signDeviceCertificate(
+    request: CertSignRequestDto,
+  ): Promise<SignedCertificateResult> {
+    this.logger.log(
+      `证书签发请求: device=${request.deviceId}, tenant=${request.tenantId || 'default'}`,
+    );
 
     // 1. 校验 CSR 格式
     const csrInfo = this.parseAndValidateCsr(request.csr);
@@ -42,7 +46,9 @@ export class CertSignService {
     }
 
     // 2. 获取中间 CA
-    const intermediateCa = await this.caManager.getIntermediateCa(request.tenantId);
+    const intermediateCa = await this.caManager.getIntermediateCa(
+      request.tenantId,
+    );
 
     // 3. 校验 CA 有效期
     const caValidity = this.caManager.validateCaExpiry(intermediateCa);
@@ -50,7 +56,9 @@ export class CertSignService {
       throw new Error(`中间 CA 已过期，无法签发证书`);
     }
     if (caValidity.daysUntilExpiry < 30) {
-      this.logger.warn(`中间 CA 将在 ${caValidity.daysUntilExpiry} 天后过期，请及时续期`);
+      this.logger.warn(
+        `中间 CA 将在 ${caValidity.daysUntilExpiry} 天后过期，请及时续期`,
+      );
     }
 
     // 4. 生成证书序列号
@@ -58,7 +66,9 @@ export class CertSignService {
 
     // 5. 构建证书
     const notBefore = new Date();
-    const notAfter = new Date(Date.now() + this.CERT_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
+    const notAfter = new Date(
+      Date.now() + this.CERT_VALIDITY_DAYS * 24 * 60 * 60 * 1000,
+    );
 
     // 6. 使用 KMS 中的中间 CA 私钥签名（私钥不导出）
     const certificatePem = await this.signWithKms(
@@ -91,7 +101,9 @@ export class CertSignService {
       },
     });
 
-    this.logger.log(`证书签发成功: device=${request.deviceId}, serial=${serialNumber}`);
+    this.logger.log(
+      `证书签发成功: device=${request.deviceId}, serial=${serialNumber}`,
+    );
 
     return {
       certificate: certificatePem,
@@ -108,10 +120,21 @@ export class CertSignService {
   /**
    * 解析并校验 CSR
    */
-  private parseAndValidateCsr(csrPem: string): { valid: boolean; subject?: string; publicKey?: string; error?: string } {
+  private parseAndValidateCsr(csrPem: string): {
+    valid: boolean;
+    subject?: string;
+    publicKey?: string;
+    error?: string;
+  } {
     // 基本格式校验
-    if (!csrPem.includes('BEGIN CERTIFICATE REQUEST') && !csrPem.includes('BEGIN NEW CERTIFICATE REQUEST')) {
-      return { valid: false, error: 'CSR 格式不正确，缺少 BEGIN CERTIFICATE REQUEST 标记' };
+    if (
+      !csrPem.includes('BEGIN CERTIFICATE REQUEST') &&
+      !csrPem.includes('BEGIN NEW CERTIFICATE REQUEST')
+    ) {
+      return {
+        valid: false,
+        error: 'CSR 格式不正确，缺少 BEGIN CERTIFICATE REQUEST 标记',
+      };
     }
 
     // 校验 PEM 结构
@@ -126,7 +149,9 @@ export class CertSignService {
 
     // 开发模式：提取主题（简化处理）
     const subjectMatch = csrPem.match(/CN\s*=\s*([^,\n]+)/i);
-    const subject = subjectMatch ? subjectMatch[1].trim() : `device-${Date.now()}`;
+    const subject = subjectMatch
+      ? subjectMatch[1].trim()
+      : `device-${Date.now()}`;
 
     return { valid: true, subject, publicKey: '[extracted from CSR]' };
   }
@@ -156,15 +181,39 @@ export class CertSignService {
       // 使用 KMS 适配器进行签名
       const signature = await this.kmsAdapter.sign(
         caInfo.kmsKeyId || `intermediate-ca-key`,
-        this.buildTbsCertificate(csr, caInfo, serialNumber, notBefore, notAfter, request),
+        this.buildTbsCertificate(
+          csr,
+          caInfo,
+          serialNumber,
+          notBefore,
+          notAfter,
+          request,
+        ),
       );
 
       // 构建完整证书 PEM
-      return this.buildCertificatePem(csr, caInfo, serialNumber, notBefore, notAfter, signature, request);
+      return this.buildCertificatePem(
+        csr,
+        caInfo,
+        serialNumber,
+        notBefore,
+        notAfter,
+        signature,
+        request,
+      );
     } catch (error) {
-      this.logger.error(`KMS 签名失败: ${error.message}，使用开发模式 fallback`);
+      this.logger.error(
+        `KMS 签名失败: ${error.message}，使用开发模式 fallback`,
+      );
       // 开发模式 fallback
-      return this.buildDevCertificate(csr, caInfo, serialNumber, notBefore, notAfter, request);
+      return this.buildDevCertificate(
+        csr,
+        caInfo,
+        serialNumber,
+        notBefore,
+        notAfter,
+        request,
+      );
     }
   }
 
@@ -190,8 +239,14 @@ export class CertSignService {
         keyUsage: ['digitalSignature', 'keyEncipherment'],
         extendedKeyUsage: ['clientAuth'],
         subjectAltName: [
-          { type: 'DNS', value: `${request.deviceId}.device.sleep-platform.local` },
-          { type: 'URI', value: `urn:sleep-platform:device:${request.deviceId}` },
+          {
+            type: 'DNS',
+            value: `${request.deviceId}.device.sleep-platform.local`,
+          },
+          {
+            type: 'URI',
+            value: `urn:sleep-platform:device:${request.deviceId}`,
+          },
         ],
         basicConstraints: { cA: false },
       },
@@ -234,7 +289,10 @@ export class CertSignService {
 
     return [
       '-----BEGIN CERTIFICATE-----',
-      Buffer.from(JSON.stringify(certData)).toString('base64').match(/.{1,64}/g)?.join('\n'),
+      Buffer.from(JSON.stringify(certData))
+        .toString('base64')
+        .match(/.{1,64}/g)
+        ?.join('\n'),
       '-----END CERTIFICATE-----',
     ].join('\n');
   }
@@ -250,7 +308,15 @@ export class CertSignService {
     notAfter: Date,
     request: CertSignRequestDto,
   ): string {
-    return this.buildCertificatePem(csr, caInfo, serialNumber, notBefore, notAfter, '[DEV MODE SIGNATURE]', request);
+    return this.buildCertificatePem(
+      csr,
+      caInfo,
+      serialNumber,
+      notBefore,
+      notAfter,
+      '[DEV MODE SIGNATURE]',
+      request,
+    );
   }
 }
 

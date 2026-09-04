@@ -41,10 +41,15 @@ export class IdempotencyMiddleware implements NestMiddleware {
     }
 
     // 检查是否已处理
-    const isProcessed = await this.idempotencyService.isProcessed(deviceId, localSequence);
+    const isProcessed = await this.idempotencyService.isProcessed(
+      deviceId,
+      localSequence,
+    );
 
     if (isProcessed) {
-      this.logger.debug(`幂等中间件: 重复请求，device=${deviceId}, seq=${localSequence}`);
+      this.logger.debug(
+        `幂等中间件: 重复请求，device=${deviceId}, seq=${localSequence}`,
+      );
       res.status(200).json({
         success: true,
         idempotent: true,
@@ -56,15 +61,21 @@ export class IdempotencyMiddleware implements NestMiddleware {
     }
 
     // 标记为处理中（防止并发重复）
-    await this.idempotencyService.markProcessed(deviceId, localSequence, 'processing');
+    await this.idempotencyService.markProcessed(
+      deviceId,
+      localSequence,
+      'processing',
+    );
 
     // 捕获响应，在响应完成后标记处理结果
     const originalJson = res.json.bind(res);
     res.json = (body: unknown) => {
       // 处理完成后更新结果
-      this.idempotencyService.markProcessed(deviceId, localSequence, JSON.stringify(body)).catch((err) => {
-        this.logger.warn(`幂等结果更新失败: ${err.message}`);
-      });
+      this.idempotencyService
+        .markProcessed(deviceId, localSequence, JSON.stringify(body))
+        .catch((err) => {
+          this.logger.warn(`幂等结果更新失败: ${err.message}`);
+        });
       return originalJson(body);
     };
 
@@ -83,9 +94,9 @@ export class IdempotencyMiddleware implements NestMiddleware {
    */
   private extractDeviceId(req: Request): string | null {
     return (
-      req.headers['x-device-id'] as string ||
+      (req.headers['x-device-id'] as string) ||
       req.body?.deviceId ||
-      req.query?.deviceId as string ||
+      (req.query?.deviceId as string) ||
       null
     );
   }

@@ -49,7 +49,9 @@ export class AuditRecorderService {
 
     // 达到批量大小则立即刷新
     if (this.buffer.length >= this.BATCH_SIZE) {
-      this.flush().catch((err) => this.logger.error(`审计批量写入失败: ${err.message}`));
+      this.flush().catch((err) =>
+        this.logger.error(`审计批量写入失败: ${err.message}`),
+      );
     }
 
     return { id: auditRecord.id as string };
@@ -60,7 +62,9 @@ export class AuditRecorderService {
    *
    * 委托统一审计查询服务按条件分页检索，供各业务模块复用。
    */
-  query(filter: AuditQueryFilter): Promise<{ records: AuditEvent[]; total: number }> {
+  query(
+    filter: AuditQueryFilter,
+  ): Promise<{ records: AuditEvent[]; total: number }> {
     return this.auditQuery.query(filter);
   }
 
@@ -131,7 +135,9 @@ export class AuditRecorderService {
   private startFlushTimer(): void {
     this.flushTimer = setInterval(() => {
       if (this.buffer.length > 0) {
-        this.flush().catch((err) => this.logger.error(`审计定时刷新失败: ${err.message}`));
+        this.flush().catch((err) =>
+          this.logger.error(`审计定时刷新失败: ${err.message}`),
+        );
       }
     }, this.FLUSH_INTERVAL);
   }

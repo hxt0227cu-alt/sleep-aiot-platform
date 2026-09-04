@@ -17,7 +17,19 @@ import { VaultSecretModule } from '../vault-secret/vault-secret.module';
  */
 @Module({
   imports: [UnifiedAuditModule, VaultSecretModule],
-  providers: [CaManagerService, CertSignService, CrlService, CertLifecycleService, KmsAdapterService],
-  exports: [CaManagerService, CertSignService, CrlService, CertLifecycleService, KmsAdapterService],
+  providers: [
+    CaManagerService,
+    CertSignService,
+    CrlService,
+    CertLifecycleService,
+    KmsAdapterService,
+  ],
+  exports: [
+    CaManagerService,
+    CertSignService,
+    CrlService,
+    CertLifecycleService,
+    KmsAdapterService,
+  ],
 })
 export class PkiCertModule {}

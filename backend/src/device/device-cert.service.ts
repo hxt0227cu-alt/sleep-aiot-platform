@@ -24,7 +24,10 @@ export class DeviceCertService {
    * @param serialNumber 证书序列号
    * @returns 证书状态
    */
-  async getCertStatus(deviceId: string, serialNumber: string): Promise<DeviceCertStatus> {
+  async getCertStatus(
+    deviceId: string,
+    serialNumber: string,
+  ): Promise<DeviceCertStatus> {
     // 检查是否已吊销
     const isRevoked = this.crlService.isRevoked(serialNumber);
     const revokedInfo = this.crlService.getRevokedCertInfo(serialNumber);
@@ -53,28 +56,59 @@ export class DeviceCertService {
    * @param reason 吊销原因
    * @param operatorId 操作人
    */
-  async revokeCert(deviceId: string, serialNumber: string, reason: string, operatorId: string): Promise<void> {
-    this.logger.log(`设备证书吊销: device=${deviceId}, serial=${serialNumber}, reason=${reason}, operator=${operatorId}`);
+  async revokeCert(
+    deviceId: string,
+    serialNumber: string,
+    reason: string,
+    operatorId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `设备证书吊销: device=${deviceId}, serial=${serialNumber}, reason=${reason}, operator=${operatorId}`,
+    );
 
     // 映射吊销原因
     const crlReason = this.mapRevocationReason(reason);
-    await this.crlService.revokeCertificate(serialNumber, crlReason, operatorId);
+    await this.crlService.revokeCertificate(
+      serialNumber,
+      crlReason,
+      operatorId,
+    );
   }
 
   /**
    * 设备 RMA（返修）时吊销证书
    */
-  async revokeForRma(deviceId: string, serialNumber: string, operatorId: string): Promise<void> {
-    this.logger.log(`设备 RMA 证书吊销: device=${deviceId}, serial=${serialNumber}`);
-    await this.crlService.revokeCertificate(serialNumber, 'device_rma' as never, operatorId);
+  async revokeForRma(
+    deviceId: string,
+    serialNumber: string,
+    operatorId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `设备 RMA 证书吊销: device=${deviceId}, serial=${serialNumber}`,
+    );
+    await this.crlService.revokeCertificate(
+      serialNumber,
+      'device_rma' as never,
+      operatorId,
+    );
   }
 
   /**
    * 设备退役时吊销证书
    */
-  async revokeForDecommission(deviceId: string, serialNumber: string, operatorId: string): Promise<void> {
-    this.logger.log(`设备退役证书吊销: device=${deviceId}, serial=${serialNumber}`);
-    await this.crlService.revokeCertificate(serialNumber, 'device_decommissioned' as never, operatorId);
+  async revokeForDecommission(
+    deviceId: string,
+    serialNumber: string,
+    operatorId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `设备退役证书吊销: device=${deviceId}, serial=${serialNumber}`,
+    );
+    await this.crlService.revokeCertificate(
+      serialNumber,
+      'device_decommissioned' as never,
+      operatorId,
+    );
   }
 
   /**
@@ -85,12 +119,21 @@ export class DeviceCertService {
   async validateCertForConnection(
     deviceId: string,
     serialNumber: string,
-    context: { isNewDevice: boolean; hasEstablishedConnection: boolean; isOfflineFunction: boolean },
+    context: {
+      isNewDevice: boolean;
+      hasEstablishedConnection: boolean;
+      isOfflineFunction: boolean;
+    },
   ): Promise<{ allowed: boolean; reason: string; gracePeriod?: boolean }> {
-    const result = await this.crlService.validateWithPolicy(serialNumber, context);
+    const result = await this.crlService.validateWithPolicy(
+      serialNumber,
+      context,
+    );
 
     if (!result.allowed) {
-      this.logger.warn(`设备证书校验拒绝: device=${deviceId}, serial=${serialNumber}, reason=${result.reason}`);
+      this.logger.warn(
+        `设备证书校验拒绝: device=${deviceId}, serial=${serialNumber}, reason=${result.reason}`,
+      );
     }
 
     return {
@@ -110,10 +153,16 @@ export class DeviceCertService {
   /**
    * 检查证书过期状态
    */
-  checkCertExpiry(notAfter: string): { status: string; daysUntilExpiry: number; actionRequired: boolean } {
+  checkCertExpiry(notAfter: string): {
+    status: string;
+    daysUntilExpiry: number;
+    actionRequired: boolean;
+  } {
     const expiryDate = new Date(notAfter);
     const now = new Date();
-    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.ceil(
+      (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     if (daysUntilExpiry <= 0) {
       return { status: 'expired', daysUntilExpiry, actionRequired: true };
@@ -132,15 +181,15 @@ export class DeviceCertService {
    */
   private mapRevocationReason(reason: string): never {
     const reasonMap: Record<string, string> = {
-      'key_compromise': 'key_compromise',
-      'device_lost': 'key_compromise',
-      'device_stolen': 'key_compromise',
-      'rma': 'device_rma',
-      'decommissioned': 'device_decommissioned',
-      'superseded': 'superseded',
-      'rotated': 'superseded',
-      'security_breach': 'key_compromise',
-      'fraud': 'privilege_withdrawn',
+      key_compromise: 'key_compromise',
+      device_lost: 'key_compromise',
+      device_stolen: 'key_compromise',
+      rma: 'device_rma',
+      decommissioned: 'device_decommissioned',
+      superseded: 'superseded',
+      rotated: 'superseded',
+      security_breach: 'key_compromise',
+      fraud: 'privilege_withdrawn',
     };
     return (reasonMap[reason.toLowerCase()] || 'unspecified') as never;
   }

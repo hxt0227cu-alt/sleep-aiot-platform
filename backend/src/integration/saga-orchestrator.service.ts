@@ -25,7 +25,10 @@ export class SagaOrchestratorService {
    * @param context 事务上下文
    * @returns Saga 执行结果
    */
-  async execute<T>(definition: SagaDefinition<T>, context: T): Promise<SagaResult<T>> {
+  async execute<T>(
+    definition: SagaDefinition<T>,
+    context: T,
+  ): Promise<SagaResult<T>> {
     const sagaId = `saga-${definition.name}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     const startTime = Date.now();
 
@@ -63,7 +66,9 @@ export class SagaOrchestratorService {
             result: stepResult,
           });
         } catch (stepError) {
-          this.logger.error(`Saga 步骤失败: ${sagaId}, step=${step.name}, error=${stepError.message}`);
+          this.logger.error(
+            `Saga 步骤失败: ${sagaId}, step=${step.name}, error=${stepError.message}`,
+          );
 
           // 执行补偿（回滚已执行的步骤）
           instance.status = 'compensating';
@@ -91,7 +96,9 @@ export class SagaOrchestratorService {
       instance.status = 'completed';
       instance.endTime = new Date().toISOString();
 
-      this.logger.log(`Saga 完成: ${sagaId}, steps=${definition.steps.length}, duration=${Date.now() - startTime}ms`);
+      this.logger.log(
+        `Saga 完成: ${sagaId}, steps=${definition.steps.length}, duration=${Date.now() - startTime}ms`,
+      );
 
       return {
         success: true,
@@ -112,8 +119,13 @@ export class SagaOrchestratorService {
   /**
    * 执行补偿（回滚）
    */
-  private async compensate(instance: SagaInstance, definition: SagaDefinition<unknown>): Promise<void> {
-    this.logger.warn(`Saga 补偿开始: ${instance.id}, steps_to_compensate=${instance.executedSteps.length}`);
+  private async compensate(
+    instance: SagaInstance,
+    definition: SagaDefinition<unknown>,
+  ): Promise<void> {
+    this.logger.warn(
+      `Saga 补偿开始: ${instance.id}, steps_to_compensate=${instance.executedSteps.length}`,
+    );
 
     // 逆序执行补偿
     for (let i = instance.executedSteps.length - 1; i >= 0; i--) {
@@ -122,24 +134,34 @@ export class SagaOrchestratorService {
 
       if (stepDefinition.compensate) {
         try {
-          this.logger.debug(`Saga 补偿步骤: ${instance.id}, step=${stepDefinition.name}`);
-          await stepDefinition.compensate(instance.context, executedStep.result);
+          this.logger.debug(
+            `Saga 补偿步骤: ${instance.id}, step=${stepDefinition.name}`,
+          );
+          await stepDefinition.compensate(
+            instance.context,
+            executedStep.result,
+          );
         } catch (compError) {
           // 补偿失败需要记录，但继续尝试其他补偿
-          this.logger.error(`Saga 补偿步骤失败: ${instance.id}, step=${stepDefinition.name}, error=${compError.message}`);
+          this.logger.error(
+            `Saga 补偿步骤失败: ${instance.id}, step=${stepDefinition.name}, error=${compError.message}`,
+          );
           // 补偿失败需要记录，用于人工介入
-          await this.outboxService.enqueue({
-            aggregateType: 'saga',
-            aggregateId: instance.id,
-            eventType: 'saga_compensation_failed',
-            tenantId: (instance.context as { tenantId?: string } | undefined)?.tenantId,
-            payload: {
-              sagaId: instance.id,
-              stepName: stepDefinition.name,
-              error: compError.message,
-              context: JSON.stringify(instance.context),
-            },
-          }).catch(() => {});
+          await this.outboxService
+            .enqueue({
+              aggregateType: 'saga',
+              aggregateId: instance.id,
+              eventType: 'saga_compensation_failed',
+              tenantId: (instance.context as { tenantId?: string } | undefined)
+                ?.tenantId,
+              payload: {
+                sagaId: instance.id,
+                stepName: stepDefinition.name,
+                error: compError.message,
+                context: JSON.stringify(instance.context),
+              },
+            })
+            .catch(() => {});
         }
       }
     }
@@ -157,7 +179,13 @@ export class SagaOrchestratorService {
   /**
    * 列出运行中的 Saga
    */
-  listRunningSagas(): Array<{ id: string; name: string; status: string; currentStep: number; startTime: string }> {
+  listRunningSagas(): Array<{
+    id: string;
+    name: string;
+    status: string;
+    currentStep: number;
+    startTime: string;
+  }> {
     return Array.from(this.runningSagas.values())
       .filter((s) => s.status === 'running' || s.status === 'compensating')
       .map((s) => ({
@@ -179,7 +207,9 @@ export class SagaOrchestratorService {
         {
           name: 'validate_device_ownership',
           execute: async (ctx) => {
-            this.logger.debug(`验证设备归属: device=${ctx.deviceId}, user=${ctx.userId}`);
+            this.logger.debug(
+              `验证设备归属: device=${ctx.deviceId}, user=${ctx.userId}`,
+            );
             // 实际应调用 DeviceService 验证
             return { validated: true };
           },
@@ -214,12 +244,16 @@ export class SagaOrchestratorService {
         {
           name: 'remove_user_binding',
           execute: async (ctx) => {
-            this.logger.debug(`解除用户绑定: device=${ctx.deviceId}, user=${ctx.userId}`);
+            this.logger.debug(
+              `解除用户绑定: device=${ctx.deviceId}, user=${ctx.userId}`,
+            );
             // 实际应调用 DeviceService
             return { unbound: true };
           },
           compensate: async (ctx) => {
-            this.logger.warn(`恢复用户绑定: device=${ctx.deviceId}, user=${ctx.userId}`);
+            this.logger.warn(
+              `恢复用户绑定: device=${ctx.deviceId}, user=${ctx.userId}`,
+            );
             // 实际应重新绑定
           },
         },
@@ -260,7 +294,8 @@ export class SagaOrchestratorService {
             return { backupId: `backup-${ctx.userId}-${Date.now()}` };
           },
           compensate: async (ctx, result) => {
-            const backupId = (result as { backupId?: string } | undefined)?.backupId;
+            const backupId = (result as { backupId?: string } | undefined)
+              ?.backupId;
             this.logger.warn(`删除备份: backup=${backupId}`);
             // 实际应删除备份
           },

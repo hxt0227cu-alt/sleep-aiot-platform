@@ -105,7 +105,10 @@ export class DeviceStatusService implements OnModuleInit, OnModuleDestroy {
     const result = await this.prisma.device.updateMany({
       where: {
         id: deviceId,
-        OR: [{ lastSeen: null }, { lastSeen: { lte: new Date(sourceLastSeen) } }],
+        OR: [
+          { lastSeen: null },
+          { lastSeen: { lte: new Date(sourceLastSeen) } },
+        ],
       },
       data: {
         status: 'online',

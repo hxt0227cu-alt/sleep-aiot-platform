@@ -19,7 +19,11 @@ export class ContentSafetyService {
   ];
 
   /** 违规内容关键词 */
-  private readonly violationKeywords: { keyword: string; category: string; severity: 'high' | 'medium' | 'low' }[] = [
+  private readonly violationKeywords: {
+    keyword: string;
+    category: string;
+    severity: 'high' | 'medium' | 'low';
+  }[] = [
     // 暴力恐怖
     { keyword: '自杀', category: 'violence', severity: 'high' },
     { keyword: '自残', category: 'violence', severity: 'high' },
@@ -52,7 +56,13 @@ export class ContentSafetyService {
    */
   detect(content: string, options?: ContentSafetyOptions): ContentSafetyResult {
     if (!content || content.trim().length === 0) {
-      return { safe: true, violations: [], piiDetected: [], riskScore: 0, action: 'allow' };
+      return {
+        safe: true,
+        violations: [],
+        piiDetected: [],
+        riskScore: 0,
+        action: 'allow',
+      };
     }
 
     const violations: ContentViolation[] = [];
@@ -87,14 +97,21 @@ export class ContentSafetyService {
             severity: item.severity,
             description: this.getViolationDescription(item.category),
           });
-          riskScore += item.severity === 'high' ? 40 : item.severity === 'medium' ? 20 : 10;
+          riskScore +=
+            item.severity === 'high'
+              ? 40
+              : item.severity === 'medium'
+                ? 20
+                : 10;
         }
       }
     }
 
     // 3. 医疗建议边界检测（产品定位为辅助工具，禁止诊断处方）
     if (options?.enforceProductBoundary !== false) {
-      const medicalViolations = violations.filter((v) => v.category === 'medical_advice');
+      const medicalViolations = violations.filter(
+        (v) => v.category === 'medical_advice',
+      );
       if (medicalViolations.length > 0) {
         riskScore += 10; // 额外边界风险
       }
@@ -103,7 +120,9 @@ export class ContentSafetyService {
     const safe = violations.length === 0 || riskScore < 30;
 
     if (!safe) {
-      this.logger.warn(`内容安全检测: riskScore=${riskScore}, violations=${violations.map((v) => v.category).join(',')}, pii=${piiDetected.length}`);
+      this.logger.warn(
+        `内容安全检测: riskScore=${riskScore}, violations=${violations.map((v) => v.category).join(',')}, pii=${piiDetected.length}`,
+      );
     }
 
     return {
@@ -112,7 +131,9 @@ export class ContentSafetyService {
       piiDetected,
       riskScore: Math.min(100, riskScore),
       action: riskScore >= 60 ? 'block' : riskScore >= 30 ? 'flag' : 'allow',
-      sanitizedContent: options?.autoSanitize ? this.sanitizeContent(content, piiDetected) : undefined,
+      sanitizedContent: options?.autoSanitize
+        ? this.sanitizeContent(content, piiDetected)
+        : undefined,
     };
   }
 
@@ -144,7 +165,10 @@ export class ContentSafetyService {
     let sanitized = content;
     for (const pii of piiList) {
       // 简单替换（实际应使用正则精确匹配）
-      sanitized = sanitized.replace(new RegExp(pii.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '[REDACTED]');
+      sanitized = sanitized.replace(
+        new RegExp(pii.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+        '[REDACTED]',
+      );
     }
     return sanitized;
   }

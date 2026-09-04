@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommandWhitelistEntry, CommandRiskLevel } from './dto/guard-command.dto';
+import {
+  CommandWhitelistEntry,
+  CommandRiskLevel,
+} from './dto/guard-command.dto';
 
 /**
  * 指令策略服务
@@ -49,7 +52,13 @@ export class CommandPolicyService {
     {
       command: 'light_alarm.create',
       riskLevel: CommandRiskLevel.MEDIUM,
-      allowedParams: ['time', 'brightness_target', 'color_temp_target', 'duration_min', 'enabled'],
+      allowedParams: [
+        'time',
+        'brightness_target',
+        'color_temp_target',
+        'duration_min',
+        'enabled',
+      ],
       paramConstraints: {
         duration_min: { min: 1, max: 120, type: 'number' },
         enabled: { enum: ['true', 'false'], type: 'string' },
@@ -106,7 +115,13 @@ export class CommandPolicyService {
     {
       command: 'alarm.update_threshold',
       riskLevel: CommandRiskLevel.HIGH,
-      allowedParams: ['alarm_type', 'threshold_low', 'threshold_high', 'duration_seconds', 'enabled'],
+      allowedParams: [
+        'alarm_type',
+        'threshold_low',
+        'threshold_high',
+        'duration_seconds',
+        'enabled',
+      ],
       paramConstraints: {
         duration_seconds: { min: 0, max: 3600, type: 'number' },
       },
@@ -156,12 +171,16 @@ export class CommandPolicyService {
   ];
 
   /** 租户级策略覆盖 */
-  private tenantOverrides: Map<string, Partial<CommandWhitelistEntry>[]> = new Map();
+  private tenantOverrides: Map<string, Partial<CommandWhitelistEntry>[]> =
+    new Map();
 
   /**
    * 获取指定设备类型和租户的指令白名单
    */
-  getWhitelist(tenantId?: string, deviceType?: string): CommandWhitelistEntry[] {
+  getWhitelist(
+    tenantId?: string,
+    deviceType?: string,
+  ): CommandWhitelistEntry[] {
     let list = [...this.defaultWhitelist];
 
     // 应用租户级覆盖
@@ -175,7 +194,9 @@ export class CommandPolicyService {
 
     // 设备类型过滤（某些指令仅适用于特定设备类型）
     if (deviceType) {
-      list = list.filter((entry) => this.isCommandSupportedByDevice(entry.command, deviceType));
+      list = list.filter((entry) =>
+        this.isCommandSupportedByDevice(entry.command, deviceType),
+      );
     }
 
     return list;
@@ -184,18 +205,31 @@ export class CommandPolicyService {
   /**
    * 查找指定指令的白名单条目
    */
-  findCommand(command: string, tenantId?: string, deviceType?: string): CommandWhitelistEntry | undefined {
-    return this.getWhitelist(tenantId, deviceType).find((entry) => entry.command === command);
+  findCommand(
+    command: string,
+    tenantId?: string,
+    deviceType?: string,
+  ): CommandWhitelistEntry | undefined {
+    return this.getWhitelist(tenantId, deviceType).find(
+      (entry) => entry.command === command,
+    );
   }
 
   /**
    * 校验指令参数是否在允许范围内
    */
-  validateParams(entry: CommandWhitelistEntry, params: Record<string, unknown>): { valid: boolean; invalidParam?: string; reason?: string } {
+  validateParams(
+    entry: CommandWhitelistEntry,
+    params: Record<string, unknown>,
+  ): { valid: boolean; invalidParam?: string; reason?: string } {
     for (const [key, value] of Object.entries(params)) {
       // 检查参数是否在允许列表中
       if (!entry.allowedParams.includes(key)) {
-        return { valid: false, invalidParam: key, reason: `参数 ${key} 不在允许列表中` };
+        return {
+          valid: false,
+          invalidParam: key,
+          reason: `参数 ${key} 不在允许列表中`,
+        };
       }
 
       // 检查参数约束
@@ -204,18 +238,34 @@ export class CommandPolicyService {
         if (constraint.type === 'number') {
           const numValue = Number(value);
           if (isNaN(numValue)) {
-            return { valid: false, invalidParam: key, reason: `参数 ${key} 必须为数字` };
+            return {
+              valid: false,
+              invalidParam: key,
+              reason: `参数 ${key} 必须为数字`,
+            };
           }
           if (constraint.min !== undefined && numValue < constraint.min) {
-            return { valid: false, invalidParam: key, reason: `参数 ${key} 不能小于 ${constraint.min}` };
+            return {
+              valid: false,
+              invalidParam: key,
+              reason: `参数 ${key} 不能小于 ${constraint.min}`,
+            };
           }
           if (constraint.max !== undefined && numValue > constraint.max) {
-            return { valid: false, invalidParam: key, reason: `参数 ${key} 不能大于 ${constraint.max}` };
+            return {
+              valid: false,
+              invalidParam: key,
+              reason: `参数 ${key} 不能大于 ${constraint.max}`,
+            };
           }
         }
         if (constraint.type === 'string' && constraint.enum) {
           if (!constraint.enum.includes(String(value))) {
-            return { valid: false, invalidParam: key, reason: `参数 ${key} 必须为 ${constraint.enum.join('/')} 之一` };
+            return {
+              valid: false,
+              invalidParam: key,
+              reason: `参数 ${key} 必须为 ${constraint.enum.join('/')} 之一`,
+            };
           }
         }
       }
@@ -226,11 +276,23 @@ export class CommandPolicyService {
   /**
    * 判断指令是否适用于指定设备类型
    */
-  private isCommandSupportedByDevice(command: string, deviceType: string): boolean {
-    const lightCommands = ['light.set_brightness', 'light.set_color_temp', 'light.set_power', 'light_alarm.create', 'light_alarm.delete'];
+  private isCommandSupportedByDevice(
+    command: string,
+    deviceType: string,
+  ): boolean {
+    const lightCommands = [
+      'light.set_brightness',
+      'light.set_color_temp',
+      'light.set_power',
+      'light_alarm.create',
+      'light_alarm.delete',
+    ];
     const voiceCommands = ['voice.play_white_noise', 'voice.stop'];
 
-    if (deviceType === 'sensor_only' && (lightCommands.includes(command) || voiceCommands.includes(command))) {
+    if (
+      deviceType === 'sensor_only' &&
+      (lightCommands.includes(command) || voiceCommands.includes(command))
+    ) {
       return false;
     }
     if (deviceType === 'light_only' && voiceCommands.includes(command)) {
@@ -242,9 +304,14 @@ export class CommandPolicyService {
   /**
    * 设置租户级策略覆盖
    */
-  setTenantOverride(tenantId: string, overrides: Partial<CommandWhitelistEntry>[]): void {
+  setTenantOverride(
+    tenantId: string,
+    overrides: Partial<CommandWhitelistEntry>[],
+  ): void {
     this.tenantOverrides.set(tenantId, overrides);
-    this.logger.log(`租户 ${tenantId} 指令策略已更新，共 ${overrides.length} 条覆盖`);
+    this.logger.log(
+      `租户 ${tenantId} 指令策略已更新，共 ${overrides.length} 条覆盖`,
+    );
   }
 
   /**

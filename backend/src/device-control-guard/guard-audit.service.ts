@@ -27,7 +27,8 @@ export class GuardAuditService {
         resourceId: entry.deviceId,
         operatorId: entry.userId,
         tenantId: entry.tenantId,
-        result: entry.result === GuardResultStatus.ALLOWED ? 'success' : 'denied',
+        result:
+          entry.result === GuardResultStatus.ALLOWED ? 'success' : 'denied',
         metadata: {
           source: entry.source,
           riskLevel: entry.riskLevel,
@@ -55,7 +56,9 @@ export class GuardAuditService {
   /**
    * 批量查询安全闸审计记录
    */
-  async query(filter: GuardAuditQuery): Promise<{ records: GuardAuditEntry[]; total: number }> {
+  async query(
+    filter: GuardAuditQuery,
+  ): Promise<{ records: GuardAuditEntry[]; total: number }> {
     // 委托统一审计服务查询
     const result = await this.auditRecorder.query({
       eventType: 'device_control_guard',
@@ -91,7 +94,17 @@ export class GuardAuditService {
    */
   async exportForCompliance(filter: GuardAuditQuery): Promise<string> {
     const { records } = await this.query(filter);
-    const headers = ['timestamp', 'deviceId', 'command', 'source', 'userId', 'riskLevel', 'result', 'denialReason', 'traceId'];
+    const headers = [
+      'timestamp',
+      'deviceId',
+      'command',
+      'source',
+      'userId',
+      'riskLevel',
+      'result',
+      'denialReason',
+      'traceId',
+    ];
     const rows = records.map((r) => [
       r.timestamp,
       r.deviceId,
@@ -104,7 +117,12 @@ export class GuardAuditService {
       r.traceId || '',
     ]);
 
-    const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const csv = [
+      headers.join(','),
+      ...rows.map((r) =>
+        r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','),
+      ),
+    ].join('\n');
     return csv;
   }
 }

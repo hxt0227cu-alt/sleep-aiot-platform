@@ -23,8 +23,13 @@ export class AuditExportService {
    * @param options 导出选项
    * @returns CSV 内容
    */
-  async exportToCsv(filter: AuditQueryFilter, options?: ExportOptions): Promise<string> {
-    this.logger.log(`审计日志导出开始: eventType=${filter.eventType || 'all'}, tenant=${filter.tenantId || 'all'}`);
+  async exportToCsv(
+    filter: AuditQueryFilter,
+    options?: ExportOptions,
+  ): Promise<string> {
+    this.logger.log(
+      `审计日志导出开始: eventType=${filter.eventType || 'all'}, tenant=${filter.tenantId || 'all'}`,
+    );
 
     const startTime = Date.now();
 
@@ -42,14 +47,25 @@ export class AuditExportService {
     }
 
     // 脱敏处理
-    const sanitizedRecords = options?.sanitize !== false
-      ? allRecords.map((r) => this.sanitizeRecord(r))
-      : allRecords;
+    const sanitizedRecords =
+      options?.sanitize !== false
+        ? allRecords.map((r) => this.sanitizeRecord(r))
+        : allRecords;
 
     // 生成 CSV
     const headers = [
-      'id', 'timestamp', 'event_type', 'action', 'resource_type', 'resource_id',
-      'operator_id', 'tenant_id', 'result', 'ip_address', 'user_agent', 'metadata',
+      'id',
+      'timestamp',
+      'event_type',
+      'action',
+      'resource_type',
+      'resource_id',
+      'operator_id',
+      'tenant_id',
+      'result',
+      'ip_address',
+      'user_agent',
+      'metadata',
     ];
 
     const rows = sanitizedRecords.map((r) => [
@@ -69,11 +85,15 @@ export class AuditExportService {
 
     const csv = [
       headers.join(','),
-      ...rows.map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')),
+      ...rows.map((r) =>
+        r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','),
+      ),
     ].join('\n');
 
     const durationMs = Date.now() - startTime;
-    this.logger.log(`审计日志导出完成: ${sanitizedRecords.length} 条, 耗时 ${durationMs}ms`);
+    this.logger.log(
+      `审计日志导出完成: ${sanitizedRecords.length} 条, 耗时 ${durationMs}ms`,
+    );
 
     return csv;
   }
@@ -81,7 +101,10 @@ export class AuditExportService {
   /**
    * 导出审计日志为 JSON
    */
-  async exportToJson(filter: AuditQueryFilter, options?: ExportOptions): Promise<string> {
+  async exportToJson(
+    filter: AuditQueryFilter,
+    options?: ExportOptions,
+  ): Promise<string> {
     const allRecords = [];
     let page = 1;
     const pageSize = 1000;
@@ -94,22 +117,30 @@ export class AuditExportService {
       page++;
     }
 
-    const sanitizedRecords = options?.sanitize !== false
-      ? allRecords.map((r) => this.sanitizeRecord(r))
-      : allRecords;
+    const sanitizedRecords =
+      options?.sanitize !== false
+        ? allRecords.map((r) => this.sanitizeRecord(r))
+        : allRecords;
 
-    return JSON.stringify({
-      exportTime: new Date().toISOString(),
-      filter,
-      total: sanitizedRecords.length,
-      records: sanitizedRecords,
-    }, null, 2);
+    return JSON.stringify(
+      {
+        exportTime: new Date().toISOString(),
+        filter,
+        total: sanitizedRecords.length,
+        records: sanitizedRecords,
+      },
+      null,
+      2,
+    );
   }
 
   /**
    * 生成合规审计报告
    */
-  async generateComplianceReport(period: { start: string; end: string }, tenantId?: string): Promise<ComplianceReport> {
+  async generateComplianceReport(
+    period: { start: string; end: string },
+    tenantId?: string,
+  ): Promise<ComplianceReport> {
     this.logger.log(`生成合规审计报告: ${period.start} ~ ${period.end}`);
 
     const filter: AuditQueryFilter = {
@@ -119,16 +150,48 @@ export class AuditExportService {
     };
 
     // 统计各类事件
-    const authEvents = await this.auditQuery.query({ ...filter, eventType: 'auth', pageSize: 1 });
-    const deviceControlEvents = await this.auditQuery.query({ ...filter, eventType: 'device_control', pageSize: 1 });
-    const dataAccessEvents = await this.auditQuery.query({ ...filter, eventType: 'data_access', pageSize: 1 });
-    const securityEvents = await this.auditQuery.query({ ...filter, eventType: 'security', pageSize: 1 });
-    const pkiEvents = await this.auditQuery.query({ ...filter, eventType: 'pki_cert_sign', pageSize: 1 });
-    const vaultEvents = await this.auditQuery.query({ ...filter, eventType: 'vault_secret_access', pageSize: 1 });
+    const authEvents = await this.auditQuery.query({
+      ...filter,
+      eventType: 'auth',
+      pageSize: 1,
+    });
+    const deviceControlEvents = await this.auditQuery.query({
+      ...filter,
+      eventType: 'device_control',
+      pageSize: 1,
+    });
+    const dataAccessEvents = await this.auditQuery.query({
+      ...filter,
+      eventType: 'data_access',
+      pageSize: 1,
+    });
+    const securityEvents = await this.auditQuery.query({
+      ...filter,
+      eventType: 'security',
+      pageSize: 1,
+    });
+    const pkiEvents = await this.auditQuery.query({
+      ...filter,
+      eventType: 'pki_cert_sign',
+      pageSize: 1,
+    });
+    const vaultEvents = await this.auditQuery.query({
+      ...filter,
+      eventType: 'vault_secret_access',
+      pageSize: 1,
+    });
 
     // 失败事件
-    const failedEvents = await this.auditQuery.query({ ...filter, result: 'failed', pageSize: 1 });
-    const deniedEvents = await this.auditQuery.query({ ...filter, result: 'denied', pageSize: 1 });
+    const failedEvents = await this.auditQuery.query({
+      ...filter,
+      result: 'failed',
+      pageSize: 1,
+    });
+    const deniedEvents = await this.auditQuery.query({
+      ...filter,
+      result: 'denied',
+      pageSize: 1,
+    });
 
     return {
       reportId: `compliance-${Date.now()}`,
@@ -136,7 +199,13 @@ export class AuditExportService {
       period,
       tenantId,
       summary: {
-        totalEvents: authEvents.total + deviceControlEvents.total + dataAccessEvents.total + securityEvents.total + pkiEvents.total + vaultEvents.total,
+        totalEvents:
+          authEvents.total +
+          deviceControlEvents.total +
+          dataAccessEvents.total +
+          securityEvents.total +
+          pkiEvents.total +
+          vaultEvents.total,
         byEventType: {
           auth: authEvents.total,
           device_control: deviceControlEvents.total,
@@ -174,8 +243,16 @@ export class AuditExportService {
 
     // 脱敏 metadata 中的敏感字段
     if (sanitized.metadata && typeof sanitized.metadata === 'object') {
-      const meta = { ...(sanitized.metadata as Record<string, unknown>) };
-      const sensitiveKeys = ['password', 'token', 'secret', 'key', 'privateKey', 'csr', 'certificate'];
+      const meta = { ...sanitized.metadata };
+      const sensitiveKeys = [
+        'password',
+        'token',
+        'secret',
+        'key',
+        'privateKey',
+        'csr',
+        'certificate',
+      ];
       for (const key of Object.keys(meta)) {
         if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
           meta[key] = '[REDACTED]';

@@ -41,9 +41,18 @@ export class TenantRateLimiterService {
    * @param requests 请求数量
    * @returns 限流结果
    */
-  async checkApiRateLimit(tenantId: string, requests: number = 1): Promise<RateLimitResult> {
+  async checkApiRateLimit(
+    tenantId: string,
+    requests: number = 1,
+  ): Promise<RateLimitResult> {
     const quotas = this.getTenantQuotas(tenantId);
-    const results: { window: string; allowed: boolean; current: number; limit: number; remaining: number }[] = [];
+    const results: {
+      window: string;
+      allowed: boolean;
+      current: number;
+      limit: number;
+      remaining: number;
+    }[] = [];
 
     // 分钟级
     const minResult = await this.checkWindow(
@@ -76,7 +85,10 @@ export class TenantRateLimiterService {
     return {
       allowed: !denied,
       deniedWindow: denied?.window,
-      currentUsage: results.reduce((acc, r) => ({ ...acc, [r.window]: r.current }), {}),
+      currentUsage: results.reduce(
+        (acc, r) => ({ ...acc, [r.window]: r.current }),
+        {},
+      ),
       limits: {
         minute: quotas.apiCallsPerMinute,
         hour: quotas.apiCallsPerHour,
@@ -89,7 +101,10 @@ export class TenantRateLimiterService {
   /**
    * 检查租户 AI Token 配额
    */
-  async checkAiTokenLimit(tenantId: string, tokens: number): Promise<RateLimitResult> {
+  async checkAiTokenLimit(
+    tenantId: string,
+    tokens: number,
+  ): Promise<RateLimitResult> {
     const quotas = this.getTenantQuotas(tenantId);
 
     const minResult = await this.checkWindow(
@@ -109,7 +124,11 @@ export class TenantRateLimiterService {
     const denied = [minResult, dayResult].find((r) => !r.allowed);
     return {
       allowed: !denied,
-      deniedWindow: denied ? (denied === minResult ? 'minute' : 'day') : undefined,
+      deniedWindow: denied
+        ? denied === minResult
+          ? 'minute'
+          : 'day'
+        : undefined,
       currentUsage: { minute: minResult.current, day: dayResult.current },
       limits: { minute: quotas.aiTokensPerMinute, day: quotas.aiTokensPerDay },
       retryAfter: denied ? (denied === minResult ? 60 : 86400) : 0,
@@ -122,11 +141,21 @@ export class TenantRateLimiterService {
   async getQuotaUsage(tenantId: string): Promise<TenantQuotaUsage> {
     const quotas = this.getTenantQuotas(tenantId);
 
-    const apiMin = await this.getCurrentUsage(`${this.RATE_PREFIX}${tenantId}:api:min`);
-    const apiHour = await this.getCurrentUsage(`${this.RATE_PREFIX}${tenantId}:api:hour`);
-    const apiDay = await this.getCurrentUsage(`${this.RATE_PREFIX}${tenantId}:api:day`);
-    const tokenMin = await this.getCurrentUsage(`${this.TOKEN_PREFIX}${tenantId}:min`);
-    const tokenDay = await this.getCurrentUsage(`${this.TOKEN_PREFIX}${tenantId}:day`);
+    const apiMin = await this.getCurrentUsage(
+      `${this.RATE_PREFIX}${tenantId}:api:min`,
+    );
+    const apiHour = await this.getCurrentUsage(
+      `${this.RATE_PREFIX}${tenantId}:api:hour`,
+    );
+    const apiDay = await this.getCurrentUsage(
+      `${this.RATE_PREFIX}${tenantId}:api:day`,
+    );
+    const tokenMin = await this.getCurrentUsage(
+      `${this.TOKEN_PREFIX}${tenantId}:min`,
+    );
+    const tokenDay = await this.getCurrentUsage(
+      `${this.TOKEN_PREFIX}${tenantId}:day`,
+    );
 
     return {
       tenantId,
@@ -158,13 +187,25 @@ export class TenantRateLimiterService {
    */
   private getTenantQuotas(tenantId: string): TenantQuotas {
     const override = this.tenantQuotas.get(tenantId);
-    return override ? { ...this.DEFAULT_QUOTAS, ...override } : this.DEFAULT_QUOTAS;
+    return override
+      ? { ...this.DEFAULT_QUOTAS, ...override }
+      : this.DEFAULT_QUOTAS;
   }
 
   /**
    * 检查时间窗口配额
    */
-  private async checkWindow(key: string, amount: number, limit: number, ttl: number): Promise<{ allowed: boolean; current: number; limit: number; remaining: number }> {
+  private async checkWindow(
+    key: string,
+    amount: number,
+    limit: number,
+    ttl: number,
+  ): Promise<{
+    allowed: boolean;
+    current: number;
+    limit: number;
+    remaining: number;
+  }> {
     const current = await this.redis.incrby(key, amount);
     if (current === amount) {
       await this.redis.expire(key, ttl);
@@ -186,10 +227,14 @@ export class TenantRateLimiterService {
    */
   private getRetryAfter(window: string): number {
     switch (window) {
-      case 'minute': return 60;
-      case 'hour': return 3600;
-      case 'day': return 86400;
-      default: return 60;
+      case 'minute':
+        return 60;
+      case 'hour':
+        return 3600;
+      case 'day':
+        return 86400;
+      default:
+        return 60;
     }
   }
 }

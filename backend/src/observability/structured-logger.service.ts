@@ -21,7 +21,8 @@ export class StructuredLoggerService {
   private readonly logger = new Logger('StructuredLogger');
 
   /** 服务名 */
-  private readonly serviceName = process.env.SERVICE_NAME || 'sleep-platform-backend';
+  private readonly serviceName =
+    process.env.SERVICE_NAME || 'sleep-platform-backend';
 
   /** 环境 */
   private readonly environment = process.env.NODE_ENV || 'development';
@@ -32,31 +33,50 @@ export class StructuredLoggerService {
   /**
    * 记录信息日志
    */
-  info(message: string, context?: LogContext, metadata?: Record<string, unknown>): void {
+  info(
+    message: string,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
     this.log('info', message, context, metadata);
   }
 
   /**
    * 记录警告日志
    */
-  warn(message: string, context?: LogContext, metadata?: Record<string, unknown>): void {
+  warn(
+    message: string,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
     this.log('warn', message, context, metadata);
   }
 
   /**
    * 记录错误日志
    */
-  error(message: string, error?: Error, context?: LogContext, metadata?: Record<string, unknown>): void {
+  error(
+    message: string,
+    error?: Error,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
     this.log('error', message, context, {
       ...metadata,
-      error: error ? { name: error.name, message: error.message, stack: error.stack } : undefined,
+      error: error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : undefined,
     });
   }
 
   /**
    * 记录调试日志
    */
-  debug(message: string, context?: LogContext, metadata?: Record<string, unknown>): void {
+  debug(
+    message: string,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
     if (this.environment === 'production') return; // 生产环境不输出 debug
     this.log('debug', message, context, metadata);
   }
@@ -64,7 +84,11 @@ export class StructuredLoggerService {
   /**
    * 记录详细日志
    */
-  verbose(message: string, context?: LogContext, metadata?: Record<string, unknown>): void {
+  verbose(
+    message: string,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
     if (this.environment === 'production') return;
     this.log('verbose', message, context, metadata);
   }
@@ -72,7 +96,12 @@ export class StructuredLoggerService {
   /**
    * 核心日志方法
    */
-  private log(level: LogLevel | 'info', message: string, context?: LogContext, metadata?: Record<string, unknown>): void {
+  private log(
+    level: LogLevel | 'info',
+    message: string,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
     const logEntry: StructuredLogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -129,7 +158,15 @@ export class StructuredLoggerService {
   /**
    * 生成请求日志（HTTP 请求入口）
    */
-  logRequest(request: { method: string; url: string; ip?: string; headers?: Record<string, string> }, context?: LogContext): void {
+  logRequest(
+    request: {
+      method: string;
+      url: string;
+      ip?: string;
+      headers?: Record<string, string>;
+    },
+    context?: LogContext,
+  ): void {
     this.info('HTTP 请求接收', context, {
       request: {
         method: request.method,
@@ -143,7 +180,10 @@ export class StructuredLoggerService {
   /**
    * 生成响应日志（HTTP 请求出口）
    */
-  logResponse(response: { statusCode: number; durationMs: number }, context?: LogContext): void {
+  logResponse(
+    response: { statusCode: number; durationMs: number },
+    context?: LogContext,
+  ): void {
     this.info('HTTP 响应发送', context, {
       response: {
         statusCode: response.statusCode,
@@ -155,7 +195,11 @@ export class StructuredLoggerService {
   /**
    * 记录业务事件
    */
-  logBusinessEvent(eventType: string, eventData: Record<string, unknown>, context?: LogContext): void {
+  logBusinessEvent(
+    eventType: string,
+    eventData: Record<string, unknown>,
+    context?: LogContext,
+  ): void {
     this.info(`业务事件: ${eventType}`, context, {
       eventType,
       eventData,
@@ -165,23 +209,46 @@ export class StructuredLoggerService {
   /**
    * 记录安全事件
    */
-  logSecurityEvent(eventType: string, severity: 'low' | 'medium' | 'high' | 'critical', details: Record<string, unknown>, context?: LogContext): void {
+  logSecurityEvent(
+    eventType: string,
+    severity: 'low' | 'medium' | 'high' | 'critical',
+    details: Record<string, unknown>,
+    context?: LogContext,
+  ): void {
     const message = `安全事件: ${eventType} (${severity})`;
     if (severity === 'critical' || severity === 'high') {
-      this.error(message, undefined, context, { securityEvent: eventType, severity, details });
+      this.error(message, undefined, context, {
+        securityEvent: eventType,
+        severity,
+        details,
+      });
     } else {
-      this.warn(message, context, { securityEvent: eventType, severity, details });
+      this.warn(message, context, {
+        securityEvent: eventType,
+        severity,
+        details,
+      });
     }
   }
 
   /**
    * 脱敏元数据（移除敏感信息）
    */
-  private sanitizeMetadata(metadata?: Record<string, unknown>): Record<string, unknown> | undefined {
+  private sanitizeMetadata(
+    metadata?: Record<string, unknown>,
+  ): Record<string, unknown> | undefined {
     if (!metadata) return undefined;
 
     const sanitized: Record<string, unknown> = {};
-    const sensitiveKeys = ['password', 'token', 'secret', 'key', 'privateKey', 'authorization', 'cookie'];
+    const sensitiveKeys = [
+      'password',
+      'token',
+      'secret',
+      'key',
+      'privateKey',
+      'authorization',
+      'cookie',
+    ];
 
     for (const [key, value] of Object.entries(metadata)) {
       if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {

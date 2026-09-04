@@ -25,7 +25,10 @@ export class VaultAdapterService implements OnModuleInit {
   private token: string;
 
   /** 密钥缓存 */
-  private secretCache: Map<string, { data: Record<string, string>; expireAt: number }> = new Map();
+  private secretCache: Map<
+    string,
+    { data: Record<string, string>; expireAt: number }
+  > = new Map();
 
   /** 缓存 TTL（毫秒） */
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 分钟
@@ -100,7 +103,8 @@ export class VaultAdapterService implements OnModuleInit {
     });
     this.devSecrets.set('pki/intermediate-ca/default/certificate', {
       certificate: '[DEV INTERMEDIATE CA CERTIFICATE]',
-      subject: 'CN=Sleep Platform Intermediate CA v1 (Dev), O=Sleep Platform, C=CN',
+      subject:
+        'CN=Sleep Platform Intermediate CA v1 (Dev), O=Sleep Platform, C=CN',
       serialNumber: '0x2000000000000001',
       kmsKeyId: 'dev-intermediate-ca-key',
     });
@@ -117,7 +121,9 @@ export class VaultAdapterService implements OnModuleInit {
     // 检查缓存
     const cached = this.secretCache.get(path);
     if (cached && cached.expireAt > Date.now()) {
-      this.accessAudit.recordAccess(path, 'cache_hit', 'system').catch(() => {});
+      this.accessAudit
+        .recordAccess(path, 'cache_hit', 'system')
+        .catch(() => {});
       return cached.data;
     }
 
@@ -136,14 +142,21 @@ export class VaultAdapterService implements OnModuleInit {
 
       if (data) {
         // 写入缓存
-        this.secretCache.set(path, { data, expireAt: Date.now() + this.CACHE_TTL });
+        this.secretCache.set(path, {
+          data,
+          expireAt: Date.now() + this.CACHE_TTL,
+        });
       }
 
-      this.accessAudit.recordAccess(path, data ? 'success' : 'not_found', 'system').catch(() => {});
+      this.accessAudit
+        .recordAccess(path, data ? 'success' : 'not_found', 'system')
+        .catch(() => {});
       return data;
     } catch (error) {
       this.logger.error(`读取密钥失败: path=${path}, error=${error.message}`);
-      this.accessAudit.recordAccess(path, 'error', 'system', error.message).catch(() => {});
+      this.accessAudit
+        .recordAccess(path, 'error', 'system', error.message)
+        .catch(() => {});
       return null;
     }
   }
@@ -196,7 +209,9 @@ export class VaultAdapterService implements OnModuleInit {
       // 实际 Vault list 调用
       return [];
     }
-    return Array.from(this.devSecrets.keys()).filter((k) => k.startsWith(prefix));
+    return Array.from(this.devSecrets.keys()).filter((k) =>
+      k.startsWith(prefix),
+    );
   }
 
   /**

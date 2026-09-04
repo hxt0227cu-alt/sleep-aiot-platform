@@ -14,7 +14,15 @@ import { RedisModule } from '../redis/redis.module';
 @Global()
 @Module({
   imports: [RedisModule],
-  providers: [TenantRateLimiterService, UserRateLimiterService, CircuitBreakerService],
-  exports: [TenantRateLimiterService, UserRateLimiterService, CircuitBreakerService],
+  providers: [
+    TenantRateLimiterService,
+    UserRateLimiterService,
+    CircuitBreakerService,
+  ],
+  exports: [
+    TenantRateLimiterService,
+    UserRateLimiterService,
+    CircuitBreakerService,
+  ],
 })
 export class RateLimitModule {}

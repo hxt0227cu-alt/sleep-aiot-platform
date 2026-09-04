@@ -53,14 +53,21 @@ export class SecretRotatorService {
       this.vaultAdapter.clearCache();
 
       // 5. 记录审计
-      await this.accessAudit.recordAccess(secretPath, 'rotate', operatorId, JSON.stringify({
-        oldKeys: oldSecret ? Object.keys(oldSecret) : [],
-        newKeys: Object.keys(newSecretData),
-        rotatedAt: new Date().toISOString(),
-      }));
+      await this.accessAudit.recordAccess(
+        secretPath,
+        'rotate',
+        operatorId,
+        JSON.stringify({
+          oldKeys: oldSecret ? Object.keys(oldSecret) : [],
+          newKeys: Object.keys(newSecretData),
+          rotatedAt: new Date().toISOString(),
+        }),
+      );
 
       const durationMs = Date.now() - startTime;
-      this.logger.log(`密钥轮换成功: path=${secretPath}, duration=${durationMs}ms`);
+      this.logger.log(
+        `密钥轮换成功: path=${secretPath}, duration=${durationMs}ms`,
+      );
 
       return {
         success: true,
@@ -71,9 +78,13 @@ export class SecretRotatorService {
         oldSecretBackup: oldSecret, // 用于回滚
       };
     } catch (error) {
-      this.logger.error(`密钥轮换失败: path=${secretPath}, error=${error.message}`);
+      this.logger.error(
+        `密钥轮换失败: path=${secretPath}, error=${error.message}`,
+      );
 
-      await this.accessAudit.recordAccess(secretPath, 'rotate_failed', operatorId, error.message).catch(() => {});
+      await this.accessAudit
+        .recordAccess(secretPath, 'rotate_failed', operatorId, error.message)
+        .catch(() => {});
 
       return {
         success: false,
@@ -99,10 +110,14 @@ export class SecretRotatorService {
       await this.vaultAdapter.writeSecret(secretPath, oldSecretData);
       this.vaultAdapter.clearCache();
 
-      await this.accessAudit.recordAccess(secretPath, 'rollback', operatorId).catch(() => {});
+      await this.accessAudit
+        .recordAccess(secretPath, 'rollback', operatorId)
+        .catch(() => {});
       return true;
     } catch (error) {
-      this.logger.error(`密钥回滚失败: path=${secretPath}, error=${error.message}`);
+      this.logger.error(
+        `密钥回滚失败: path=${secretPath}, error=${error.message}`,
+      );
       return false;
     }
   }
@@ -110,11 +125,19 @@ export class SecretRotatorService {
   /**
    * 检查密钥是否需要轮换
    */
-  checkRotationNeeded(lastRotatedAt: string): { needed: boolean; daysSinceRotation: number; warning: boolean } {
+  checkRotationNeeded(lastRotatedAt: string): {
+    needed: boolean;
+    daysSinceRotation: number;
+    warning: boolean;
+  } {
     const lastRotated = new Date(lastRotatedAt);
-    const daysSinceRotation = Math.ceil((Date.now() - lastRotated.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceRotation = Math.ceil(
+      (Date.now() - lastRotated.getTime()) / (1000 * 60 * 60 * 24),
+    );
     const needed = daysSinceRotation >= this.ROTATION_PERIOD_DAYS;
-    const warning = daysSinceRotation >= this.ROTATION_PERIOD_DAYS - this.ROTATION_WARNING_DAYS;
+    const warning =
+      daysSinceRotation >=
+      this.ROTATION_PERIOD_DAYS - this.ROTATION_WARNING_DAYS;
 
     return { needed, daysSinceRotation, warning };
   }
@@ -131,7 +154,10 @@ export class SecretRotatorService {
   /**
    * 执行批量轮换检查
    */
-  async runRotationCheck(): Promise<{ needingRotation: string[]; warnings: string[] }> {
+  async runRotationCheck(): Promise<{
+    needingRotation: string[];
+    warnings: string[];
+  }> {
     const needingRotation: string[] = [];
     const warnings: string[] = [];
 
@@ -152,7 +178,8 @@ export class SecretRotatorService {
    * 生成随机密码
    */
   generatePassword(length: number = 32): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    const chars =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let password = '';
     for (let i = 0; i < length; i++) {
       password += chars.charAt(Math.floor(Math.random() * chars.length));

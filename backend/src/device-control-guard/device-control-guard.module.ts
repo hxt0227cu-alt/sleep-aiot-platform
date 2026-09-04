@@ -20,7 +20,11 @@ import { TenantModule } from '../tenant/tenant.module';
  */
 @Module({
   imports: [UnifiedAuditModule, TenantModule],
-  providers: [DeviceControlGuardService, CommandPolicyService, GuardAuditService],
+  providers: [
+    DeviceControlGuardService,
+    CommandPolicyService,
+    GuardAuditService,
+  ],
   exports: [DeviceControlGuardService, CommandPolicyService, GuardAuditService],
 })
 export class DeviceControlGuardModule {}

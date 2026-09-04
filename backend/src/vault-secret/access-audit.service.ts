@@ -43,7 +43,9 @@ export class AccessAuditService {
         },
       });
 
-      this.logger.debug(`密钥访问审计: path=${secretPath}, op=${operation}, operator=${operatorId}`);
+      this.logger.debug(
+        `密钥访问审计: path=${secretPath}, op=${operation}, operator=${operatorId}`,
+      );
     } catch (error) {
       // 审计失败不阻断主流程
       this.logger.error(`密钥访问审计记录失败: ${error.message}`);
@@ -99,7 +101,14 @@ export class AccessAuditService {
       pageSize: 10000,
     });
 
-    const headers = ['timestamp', 'secretPath', 'operation', 'operatorId', 'result', 'details'];
+    const headers = [
+      'timestamp',
+      'secretPath',
+      'operation',
+      'operatorId',
+      'result',
+      'details',
+    ];
     const rows = records.map((r) => [
       r.timestamp,
       r.secretPath,
@@ -109,7 +118,12 @@ export class AccessAuditService {
       r.details || '',
     ]);
 
-    return [headers.join(','), ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+    return [
+      headers.join(','),
+      ...rows.map((r) =>
+        r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','),
+      ),
+    ].join('\n');
   }
 
   /**

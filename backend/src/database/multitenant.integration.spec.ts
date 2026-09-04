@@ -109,10 +109,14 @@ describeIntegration('全局多租户隔离（真实 DB，ADR-017）', () => {
     );
 
     const fromA = await TenantContext.run(tenantA, () =>
-      prisma.sleepReport.findMany({ where: { deviceId: { in: [devA, devB] } } }),
+      prisma.sleepReport.findMany({
+        where: { deviceId: { in: [devA, devB] } },
+      }),
     );
     const fromB = await TenantContext.run(tenantB, () =>
-      prisma.sleepReport.findMany({ where: { deviceId: { in: [devA, devB] } } }),
+      prisma.sleepReport.findMany({
+        where: { deviceId: { in: [devA, devB] } },
+      }),
     );
 
     expect(fromA.map((r) => r.deviceId)).toEqual([devA]);

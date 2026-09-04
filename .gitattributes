@@ -1,0 +1,15 @@
+# Normalize all text files to LF (open-source standard; prevents CRLF/LF churn)
+* text=auto eol=lf
+
+# Binary assets must never be normalized
+*.jpg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.jar binary
+*.class binary
+*.pdf binary

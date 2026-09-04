@@ -39,12 +39,16 @@ export class CaManagerService implements OnModuleInit {
    */
   private async loadRootCaInfo(): Promise<void> {
     try {
-      const rootCaCert = await this.vaultAdapter.readSecret('pki/root-ca/certificate');
+      const rootCaCert = await this.vaultAdapter.readSecret(
+        'pki/root-ca/certificate',
+      );
       if (rootCaCert) {
         this.rootCaInfo = {
           caId: 'root-ca-v1',
           certPem: rootCaCert.certificate,
-          subject: rootCaCert.subject || 'CN=Sleep Platform Root CA v1, O=Sleep Platform, C=CN',
+          subject:
+            rootCaCert.subject ||
+            'CN=Sleep Platform Root CA v1, O=Sleep Platform, C=CN',
           serialNumber: rootCaCert.serialNumber || '0x1000000000000001',
           notBefore: rootCaCert.notBefore,
           notAfter: rootCaCert.notAfter,
@@ -52,9 +56,13 @@ export class CaManagerService implements OnModuleInit {
           isRoot: true,
           kmsKeyId: rootCaCert.kmsKeyId,
         };
-        this.logger.log(`根 CA 元数据加载成功: serial=${this.rootCaInfo.serialNumber}`);
+        this.logger.log(
+          `根 CA 元数据加载成功: serial=${this.rootCaInfo.serialNumber}`,
+        );
       } else {
-        this.logger.warn('根 CA 证书未在 Vault 中找到，使用默认配置（开发模式）');
+        this.logger.warn(
+          '根 CA 证书未在 Vault 中找到，使用默认配置（开发模式）',
+        );
         this.rootCaInfo = this.getDefaultRootCaInfo();
       }
     } catch (error) {
@@ -68,12 +76,16 @@ export class CaManagerService implements OnModuleInit {
    */
   private async loadDefaultIntermediateCa(): Promise<void> {
     try {
-      const intermediateCert = await this.vaultAdapter.readSecret('pki/intermediate-ca/default/certificate');
+      const intermediateCert = await this.vaultAdapter.readSecret(
+        'pki/intermediate-ca/default/certificate',
+      );
       if (intermediateCert) {
         const caInfo: CaInfo = {
           caId: this.DEFAULT_INTERMEDIATE_CA_ID,
           certPem: intermediateCert.certificate,
-          subject: intermediateCert.subject || 'CN=Sleep Platform Intermediate CA v1, O=Sleep Platform, C=CN',
+          subject:
+            intermediateCert.subject ||
+            'CN=Sleep Platform Intermediate CA v1, O=Sleep Platform, C=CN',
           serialNumber: intermediateCert.serialNumber || '0x2000000000000001',
           notBefore: intermediateCert.notBefore,
           notAfter: intermediateCert.notAfter,
@@ -86,11 +98,17 @@ export class CaManagerService implements OnModuleInit {
         this.logger.log(`默认中间 CA 加载成功: serial=${caInfo.serialNumber}`);
       } else {
         this.logger.warn('默认中间 CA 证书未找到，使用默认配置（开发模式）');
-        this.intermediateCaCache.set(this.DEFAULT_INTERMEDIATE_CA_ID, this.getDefaultIntermediateCaInfo());
+        this.intermediateCaCache.set(
+          this.DEFAULT_INTERMEDIATE_CA_ID,
+          this.getDefaultIntermediateCaInfo(),
+        );
       }
     } catch (error) {
       this.logger.error(`默认中间 CA 加载失败: ${error.message}`);
-      this.intermediateCaCache.set(this.DEFAULT_INTERMEDIATE_CA_ID, this.getDefaultIntermediateCaInfo());
+      this.intermediateCaCache.set(
+        this.DEFAULT_INTERMEDIATE_CA_ID,
+        this.getDefaultIntermediateCaInfo(),
+      );
     }
   }
 
@@ -116,7 +134,9 @@ export class CaManagerService implements OnModuleInit {
 
       // 尝试从 Vault 加载租户独立 CA
       try {
-        const tenantCert = await this.vaultAdapter.readSecret(`pki/intermediate-ca/tenant-${tenantId}/certificate`);
+        const tenantCert = await this.vaultAdapter.readSecret(
+          `pki/intermediate-ca/tenant-${tenantId}/certificate`,
+        );
         if (tenantCert) {
           const caInfo: CaInfo = {
             caId: tenantCaId,
@@ -135,7 +155,9 @@ export class CaManagerService implements OnModuleInit {
           return caInfo;
         }
       } catch (error) {
-        this.logger.debug(`租户 ${tenantId} 无独立 CA，使用默认 CA: ${error.message}`);
+        this.logger.debug(
+          `租户 ${tenantId} 无独立 CA，使用默认 CA: ${error.message}`,
+        );
       }
     }
 
@@ -155,7 +177,10 @@ export class CaManagerService implements OnModuleInit {
   /**
    * 验证 CA 证书有效性
    */
-  validateCaExpiry(caInfo: CaInfo): { valid: boolean; daysUntilExpiry: number } {
+  validateCaExpiry(caInfo: CaInfo): {
+    valid: boolean;
+    daysUntilExpiry: number;
+  } {
     if (!caInfo.notAfter) {
       return { valid: true, daysUntilExpiry: -1 };
     }
@@ -178,7 +203,8 @@ export class CaManagerService implements OnModuleInit {
   private getDefaultRootCaInfo(): CaInfo {
     return {
       caId: 'root-ca-v1',
-      certPem: '-----BEGIN CERTIFICATE-----\n[DEV MODE] Root CA placeholder\n-----END CERTIFICATE-----',
+      certPem:
+        '-----BEGIN CERTIFICATE-----\n[DEV MODE] Root CA placeholder\n-----END CERTIFICATE-----',
       subject: 'CN=Sleep Platform Root CA v1 (Dev), O=Sleep Platform, C=CN',
       serialNumber: '0x1000000000000001',
       notBefore: '2026-01-01T00:00:00Z',
@@ -195,8 +221,10 @@ export class CaManagerService implements OnModuleInit {
   private getDefaultIntermediateCaInfo(): CaInfo {
     return {
       caId: this.DEFAULT_INTERMEDIATE_CA_ID,
-      certPem: '-----BEGIN CERTIFICATE-----\n[DEV MODE] Intermediate CA placeholder\n-----END CERTIFICATE-----',
-      subject: 'CN=Sleep Platform Intermediate CA v1 (Dev), O=Sleep Platform, C=CN',
+      certPem:
+        '-----BEGIN CERTIFICATE-----\n[DEV MODE] Intermediate CA placeholder\n-----END CERTIFICATE-----',
+      subject:
+        'CN=Sleep Platform Intermediate CA v1 (Dev), O=Sleep Platform, C=CN',
       serialNumber: '0x2000000000000001',
       notBefore: '2026-01-01T00:00:00Z',
       notAfter: '2031-01-01T00:00:00Z',

@@ -11,7 +11,11 @@ import { UnifiedAuditModule } from '../unified-audit/unified-audit.module';
  */
 @Module({
   imports: [UnifiedAuditModule],
-  providers: [PromptInjectionGuardService, ContentSafetyService, InputSecurityInterceptor],
+  providers: [
+    PromptInjectionGuardService,
+    ContentSafetyService,
+    InputSecurityInterceptor,
+  ],
   exports: [PromptInjectionGuardService, ContentSafetyService],
 })
 export class InputSecurityModule {}

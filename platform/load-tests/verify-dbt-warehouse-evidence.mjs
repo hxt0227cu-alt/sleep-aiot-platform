@@ -3,19 +3,33 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const workspace = resolve(import.meta.dirname, '../..');
-const evidenceDirectory = resolve(workspace, '202607worklog/performance/raw');
-const fullRefreshName = '20260731-dbt-feature-full-refresh.json';
-const incrementalNames = [
-  '20260731-dbt-feature-incremental-01.json',
-  '20260731-dbt-feature-incremental-02.json',
-  '20260731-dbt-feature-incremental-03.json',
-];
-const summaryName = '20260731-dbt-feature-warehouse-summary.json';
+const evidenceDirectory = resolve(workspace, process.env.EVIDENCE_OUTPUT_DIR ?? '202607worklog/performance/raw');
+const ciMode = process.argv.includes('--ci');
+const fullRefreshName = ciMode ? 'ci-full-refresh.json' : '20260731-dbt-feature-full-refresh.json';
+const incrementalNames = ciMode
+  ? ['ci-incremental-01.json']
+  : [
+    '20260731-dbt-feature-incremental-01.json',
+    '20260731-dbt-feature-incremental-02.json',
+    '20260731-dbt-feature-incremental-03.json',
+  ];
+const summaryName = ciMode ? 'ci-warehouse-summary.json' : '20260731-dbt-feature-warehouse-summary.json';
 const fullRefresh = await readJson(resolve(evidenceDirectory, fullRefreshName));
 const runs = await Promise.all(incrementalNames.map(name => readJson(resolve(evidenceDirectory, name))));
 
 assertRun(fullRefresh, 'full-refresh');
 runs.forEach(run => assertRun(run, 'incremental'));
+
+if (ciMode) {
+  console.log(JSON.stringify({
+    mode: 'ci',
+    verifiedRuns: [fullRefreshName, ...incrementalNames],
+    warehouse: fullRefresh.warehouse,
+    passed: true,
+  }, null, 2));
+  process.exit(0);
+}
+
 const allRuns = [fullRefresh, ...runs];
 assert.equal(new Set(allRuns.map(run => run.environment.dbtImageId)).size, 1, 'dbt image changed between formal runs');
 assert.equal(new Set(allRuns.map(run => run.artifacts.graphFingerprintSha256)).size, 1, 'dbt graph changed between formal runs');

@@ -18,7 +18,10 @@ describe('AlgorithmProposalModule dependency wiring', () => {
 
   it('compiles with the controller JwtAuthGuard dependency resolved', async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true }), AlgorithmProposalModule],
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        AlgorithmProposalModule,
+      ],
     })
       .overrideProvider(PrismaService)
       .useValue({})

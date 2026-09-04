@@ -27,9 +27,11 @@ export class KmsAdapterService implements OnModuleInit {
   private intermediateCaKeyId: string;
 
   constructor() {
-    this.provider = (process.env.KMS_PROVIDER as 'aliyun' | 'aws' | 'dev') || 'dev';
+    this.provider =
+      (process.env.KMS_PROVIDER as 'aliyun' | 'aws' | 'dev') || 'dev';
     this.rootCaKeyId = process.env.KMS_ROOT_CA_KEY_ID || 'dev-root-ca-key';
-    this.intermediateCaKeyId = process.env.KMS_INTERMEDIATE_CA_KEY_ID || 'dev-intermediate-ca-key';
+    this.intermediateCaKeyId =
+      process.env.KMS_INTERMEDIATE_CA_KEY_ID || 'dev-intermediate-ca-key';
   }
 
   async onModuleInit(): Promise<void> {
@@ -75,7 +77,11 @@ export class KmsAdapterService implements OnModuleInit {
   /**
    * 使用 KMS 密钥验证签名
    */
-  async verify(keyId: string, data: Buffer, signature: string): Promise<boolean> {
+  async verify(
+    keyId: string,
+    data: Buffer,
+    signature: string,
+  ): Promise<boolean> {
     if (this.provider === 'dev') {
       return this.devVerify(keyId, data, signature);
     }
@@ -115,7 +121,9 @@ export class KmsAdapterService implements OnModuleInit {
   /**
    * 检查密钥是否可用
    */
-  async checkKeyAvailability(keyId: string): Promise<{ available: boolean; keySpec?: string; usage?: string }> {
+  async checkKeyAvailability(
+    keyId: string,
+  ): Promise<{ available: boolean; keySpec?: string; usage?: string }> {
     try {
       if (this.provider === 'dev') {
         const key = this.keyCache.get(keyId);
@@ -147,26 +155,36 @@ export class KmsAdapterService implements OnModuleInit {
 
   private initializeDevKeys(): void {
     // 根 CA 密钥
-    const rootKeyPair = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const rootKeyPair = crypto.generateKeyPairSync('ec', {
+      namedCurve: 'prime256v1',
+    });
     this.keyCache.set(this.rootCaKeyId, {
       keyId: this.rootCaKeyId,
       keySpec: 'EC_P256',
       usage: 'SIGN_VERIFY',
       privateKey: rootKeyPair.privateKey,
-      publicKey: rootKeyPair.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+      publicKey: rootKeyPair.publicKey
+        .export({ type: 'spki', format: 'pem' })
+        .toString(),
     });
 
     // 中间 CA 密钥
-    const intermediateKeyPair = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const intermediateKeyPair = crypto.generateKeyPairSync('ec', {
+      namedCurve: 'prime256v1',
+    });
     this.keyCache.set(this.intermediateCaKeyId, {
       keyId: this.intermediateCaKeyId,
       keySpec: 'EC_P256',
       usage: 'SIGN_VERIFY',
       privateKey: intermediateKeyPair.privateKey,
-      publicKey: intermediateKeyPair.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+      publicKey: intermediateKeyPair.publicKey
+        .export({ type: 'spki', format: 'pem' })
+        .toString(),
     });
 
-    this.logger.log(`开发模式密钥初始化完成: root=${this.rootCaKeyId}, intermediate=${this.intermediateCaKeyId}`);
+    this.logger.log(
+      `开发模式密钥初始化完成: root=${this.rootCaKeyId}, intermediate=${this.intermediateCaKeyId}`,
+    );
   }
 
   private devSign(keyId: string, data: Buffer): string {
@@ -201,7 +219,11 @@ export class KmsAdapterService implements OnModuleInit {
     throw new Error('阿里云 KMS SDK 未配置');
   }
 
-  private async aliyunVerify(keyId: string, data: Buffer, signature: string): Promise<boolean> {
+  private async aliyunVerify(
+    keyId: string,
+    data: Buffer,
+    signature: string,
+  ): Promise<boolean> {
     throw new Error('阿里云 KMS SDK 未配置');
   }
 
@@ -216,7 +238,11 @@ export class KmsAdapterService implements OnModuleInit {
     throw new Error('AWS KMS SDK 未配置');
   }
 
-  private async awsVerify(keyId: string, data: Buffer, signature: string): Promise<boolean> {
+  private async awsVerify(
+    keyId: string,
+    data: Buffer,
+    signature: string,
+  ): Promise<boolean> {
     throw new Error('AWS KMS SDK 未配置');
   }
 }

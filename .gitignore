@@ -52,6 +52,10 @@ miniprogram/dist/
 miniprogram/.swc/
 miniprogram/project.private.config.json
 
+# ---- dbt build artifacts (generated) ----
+platform/data/dbt/target/
+platform/data/dbt/logs/
+
 # ---- Local archives (not part of product) ----
 ui*.zip
 ui*.make
@@ -59,6 +63,9 @@ ui*.make
 *.zip
 *.jpg
 *.png
+# Product image assets that must be tracked (miniprogram UI/icon assets)
+!miniprogram/src/assets/**/*.jpg
+!miniprogram/src/assets/**/*.png
 
 # ---- Misc ----
 .tmp/

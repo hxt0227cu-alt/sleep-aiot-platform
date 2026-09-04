@@ -13,41 +13,132 @@ export class PromptInjectionGuardService {
   /** 已知注入模式 */
   private readonly injectionPatterns: InjectionPattern[] = [
     // 系统提示覆盖
-    { pattern: /ignore\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)/i, type: 'system_override', severity: 'high' },
-    { pattern: /disregard\s+(all\s+)?(previous|above)\s+(instructions|prompts)/i, type: 'system_override', severity: 'high' },
-    { pattern: /forget\s+(everything|all|your\s+instructions)/i, type: 'system_override', severity: 'high' },
-    { pattern: /you\s+are\s+now\s+((a|an)\s+)?(DAN|AI|assistant|bot|system|developer)/i, type: 'role_hijack', severity: 'high' },
-    { pattern: /new\s+(instructions|rules|persona|system\s+prompt)/i, type: 'system_override', severity: 'medium' },
+    {
+      pattern:
+        /ignore\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)/i,
+      type: 'system_override',
+      severity: 'high',
+    },
+    {
+      pattern:
+        /disregard\s+(all\s+)?(previous|above)\s+(instructions|prompts)/i,
+      type: 'system_override',
+      severity: 'high',
+    },
+    {
+      pattern: /forget\s+(everything|all|your\s+instructions)/i,
+      type: 'system_override',
+      severity: 'high',
+    },
+    {
+      pattern:
+        /you\s+are\s+now\s+((a|an)\s+)?(DAN|AI|assistant|bot|system|developer)/i,
+      type: 'role_hijack',
+      severity: 'high',
+    },
+    {
+      pattern: /new\s+(instructions|rules|persona|system\s+prompt)/i,
+      type: 'system_override',
+      severity: 'medium',
+    },
 
     // 越权操作诱导
-    { pattern: /(execute|run|call)\s+(system|shell|command|terminal|bash|cmd)/i, type: 'command_injection', severity: 'critical' },
-    { pattern: /(execute|run|call)\s+(the\s+)?(following\s+)?(system|shell|terminal|bash|cmd)\s+command/i, type: 'command_injection', severity: 'critical' },
-    { pattern: /(read|access|expose|reveal)\s+(system\s+prompt|initial\s+instructions|hidden\s+prompt)/i, type: 'prompt_leak', severity: 'high' },
-    { pattern: /(bypass|override|disable|turn\s+off)\s+(your\s+|the\s+)?(safety|security|filter|guardrail|moderation)/i, type: 'safety_bypass', severity: 'critical' },
+    {
+      pattern: /(execute|run|call)\s+(system|shell|command|terminal|bash|cmd)/i,
+      type: 'command_injection',
+      severity: 'critical',
+    },
+    {
+      pattern:
+        /(execute|run|call)\s+(the\s+)?(following\s+)?(system|shell|terminal|bash|cmd)\s+command/i,
+      type: 'command_injection',
+      severity: 'critical',
+    },
+    {
+      pattern:
+        /(read|access|expose|reveal)\s+(system\s+prompt|initial\s+instructions|hidden\s+prompt)/i,
+      type: 'prompt_leak',
+      severity: 'high',
+    },
+    {
+      pattern:
+        /(bypass|override|disable|turn\s+off)\s+(your\s+|the\s+)?(safety|security|filter|guardrail|moderation)/i,
+      type: 'safety_bypass',
+      severity: 'critical',
+    },
 
     // 数据泄露诱导
-    { pattern: /(reveal|show|display|output)\s+(all|your|the)\s+(system|hidden|secret|private)\s+(prompt|instructions|rules)/i, type: 'prompt_leak', severity: 'high' },
-    { pattern: /(print|echo|output)\s+(your|the)\s+((initial|system|full|entire)\s+){1,2}prompt/i, type: 'prompt_leak', severity: 'high' },
+    {
+      pattern:
+        /(reveal|show|display|output)\s+(all|your|the)\s+(system|hidden|secret|private)\s+(prompt|instructions|rules)/i,
+      type: 'prompt_leak',
+      severity: 'high',
+    },
+    {
+      pattern:
+        /(print|echo|output)\s+(your|the)\s+((initial|system|full|entire)\s+){1,2}prompt/i,
+      type: 'prompt_leak',
+      severity: 'high',
+    },
 
     // 多轮诱导
-    { pattern: /in\s+(the\s+)?(next|following)\s+(message|turn|response|reply)/i, type: 'multi_turn_induction', severity: 'medium' },
-    { pattern: /(pretend|act\s+as|roleplay|role\s+play)\s+(you\s+are|as\s+if)/i, type: 'role_hijack', severity: 'medium' },
+    {
+      pattern:
+        /in\s+(the\s+)?(next|following)\s+(message|turn|response|reply)/i,
+      type: 'multi_turn_induction',
+      severity: 'medium',
+    },
+    {
+      pattern: /(pretend|act\s+as|roleplay|role\s+play)\s+(you\s+are|as\s+if)/i,
+      type: 'role_hijack',
+      severity: 'medium',
+    },
 
     // 编码混淆
-    { pattern: /base64\s*(decode|decrypt|interpret)/i, type: 'encoded_injection', severity: 'medium' },
-    { pattern: /(hex|octal|binary|rot13)\s*(decode|decrypt)/i, type: 'encoded_injection', severity: 'medium' },
+    {
+      pattern: /base64\s*(decode|decrypt|interpret)/i,
+      type: 'encoded_injection',
+      severity: 'medium',
+    },
+    {
+      pattern: /(hex|octal|binary|rot13)\s*(decode|decrypt)/i,
+      type: 'encoded_injection',
+      severity: 'medium',
+    },
 
     // 越权设备控制
-    { pattern: /(disable|turn\s+off|bypass)\s+(the\s+)?(safety\s+guard|device\s+guard|device\s+security\s+guard|security\s+guard|security\s+check)/i, type: 'device_guard_bypass', severity: 'critical' },
-    { pattern: /(grant|give|elevate)\s+(admin|root|superuser|full)\s+(access|permission|privileges)/i, type: 'privilege_escalation', severity: 'critical' },
+    {
+      pattern:
+        /(disable|turn\s+off|bypass)\s+(the\s+)?(safety\s+guard|device\s+guard|device\s+security\s+guard|security\s+guard|security\s+check)/i,
+      type: 'device_guard_bypass',
+      severity: 'critical',
+    },
+    {
+      pattern:
+        /(grant|give|elevate)\s+(admin|root|superuser|full)\s+(access|permission|privileges)/i,
+      type: 'privilege_escalation',
+      severity: 'critical',
+    },
   ];
 
   /** 可疑关键词 */
   private readonly suspiciousKeywords = [
-    'ignore previous', 'disregard all', 'forget everything', 'you are now',
-    'new instructions', 'system prompt', 'initial instructions', 'hidden prompt',
-    'bypass safety', 'disable filter', 'override security', 'jailbreak',
-    'DAN mode', 'developer mode', 'unrestricted', 'no limits',
+    'ignore previous',
+    'disregard all',
+    'forget everything',
+    'you are now',
+    'new instructions',
+    'system prompt',
+    'initial instructions',
+    'hidden prompt',
+    'bypass safety',
+    'disable filter',
+    'override security',
+    'jailbreak',
+    'DAN mode',
+    'developer mode',
+    'unrestricted',
+    'no limits',
   ];
 
   /**
@@ -57,7 +148,10 @@ export class PromptInjectionGuardService {
    * @param context 上下文（可选，用于多轮检测）
    * @returns 检测结果
    */
-  detect(input: string, context?: InjectionDetectionContext): InjectionDetectionResult {
+  detect(
+    input: string,
+    context?: InjectionDetectionContext,
+  ): InjectionDetectionResult {
     if (!input || input.trim().length === 0) {
       return { safe: true, threats: [], riskScore: 0 };
     }
@@ -96,8 +190,14 @@ export class PromptInjectionGuardService {
     }
 
     // 3. 多轮上下文检测
-    if (context?.conversationHistory && context.conversationHistory.length > 0) {
-      const multiTurnThreat = this.detectMultiTurnInduction(input, context.conversationHistory);
+    if (
+      context?.conversationHistory &&
+      context.conversationHistory.length > 0
+    ) {
+      const multiTurnThreat = this.detectMultiTurnInduction(
+        input,
+        context.conversationHistory,
+      );
       if (multiTurnThreat) {
         threats.push(multiTurnThreat);
         riskScore += this.getSeverityScore(multiTurnThreat.severity);
@@ -112,10 +212,14 @@ export class PromptInjectionGuardService {
     }
 
     // 仅当完全无威胁，或仅命中低危关键词且风险分低于阈值时视为安全
-    const safe = threats.length === 0 || (riskScore < 30 && threats.every((t) => t.severity === 'low'));
+    const safe =
+      threats.length === 0 ||
+      (riskScore < 30 && threats.every((t) => t.severity === 'low'));
 
     if (!safe) {
-      this.logger.warn(`提示词注入检测: riskScore=${riskScore}, threats=${threats.map((t) => t.type).join(',')}`);
+      this.logger.warn(
+        `提示词注入检测: riskScore=${riskScore}, threats=${threats.map((t) => t.type).join(',')}`,
+      );
     }
 
     return {
@@ -129,12 +233,21 @@ export class PromptInjectionGuardService {
   /**
    * 多轮诱导检测
    */
-  private detectMultiTurnInduction(input: string, history: string[]): DetectedThreat | null {
+  private detectMultiTurnInduction(
+    input: string,
+    history: string[],
+  ): DetectedThreat | null {
     const recentHistory = history.slice(-5).join(' ').toLowerCase();
 
     // 检测渐进式诱导
-    if (recentHistory.includes('let\'s play') || recentHistory.includes('hypothetical scenario')) {
-      if (input.toLowerCase().includes('now') || input.toLowerCase().includes('in this scenario')) {
+    if (
+      recentHistory.includes("let's play") ||
+      recentHistory.includes('hypothetical scenario')
+    ) {
+      if (
+        input.toLowerCase().includes('now') ||
+        input.toLowerCase().includes('in this scenario')
+      ) {
         return {
           type: 'multi_turn_induction',
           severity: 'medium',
@@ -156,7 +269,11 @@ export class PromptInjectionGuardService {
     if (base64Match) {
       try {
         const decoded = Buffer.from(base64Match[0], 'base64').toString('utf-8');
-        if (decoded.includes('ignore') || decoded.includes('system prompt') || decoded.includes('bypass')) {
+        if (
+          decoded.includes('ignore') ||
+          decoded.includes('system prompt') ||
+          decoded.includes('bypass')
+        ) {
           return {
             type: 'encoded_injection',
             severity: 'high',
@@ -194,18 +311,26 @@ export class PromptInjectionGuardService {
    */
   private getSeverityScore(severity: string): number {
     switch (severity) {
-      case 'critical': return 50;
-      case 'high': return 30;
-      case 'medium': return 15;
-      case 'low': return 5;
-      default: return 10;
+      case 'critical':
+        return 50;
+      case 'high':
+        return 30;
+      case 'medium':
+        return 15;
+      case 'low':
+        return 5;
+      default:
+        return 10;
     }
   }
 
   /**
    * 确定应对措施
    */
-  private determineAction(riskScore: number, threats: DetectedThreat[]): InjectionAction {
+  private determineAction(
+    riskScore: number,
+    threats: DetectedThreat[],
+  ): InjectionAction {
     if (riskScore >= 70 || threats.some((t) => t.severity === 'critical')) {
       return 'block';
     }

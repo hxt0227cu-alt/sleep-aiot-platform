@@ -15,7 +15,11 @@ import { RedisModule } from '../redis/redis.module';
 @Global()
 @Module({
   imports: [RedisModule],
-  providers: [IdempotencyService, SequenceTrackerService, IdempotencyMiddleware],
+  providers: [
+    IdempotencyService,
+    SequenceTrackerService,
+    IdempotencyMiddleware,
+  ],
   exports: [IdempotencyService, SequenceTrackerService],
 })
 export class IdempotencyModule {}

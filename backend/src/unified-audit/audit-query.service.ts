@@ -16,7 +16,9 @@ export class AuditQueryService {
   /**
    * 查询审计日志
    */
-  async query(filter: AuditQueryFilter): Promise<{ records: AuditEvent[]; total: number }> {
+  async query(
+    filter: AuditQueryFilter,
+  ): Promise<{ records: AuditEvent[]; total: number }> {
     const page = filter.page || 1;
     const pageSize = filter.pageSize || 50;
     const skip = (page - 1) * pageSize;
@@ -40,7 +42,11 @@ export class AuditQueryService {
   /**
    * 按事件类型统计
    */
-  async countByEventType(filter: { startTime?: string; endTime?: string; tenantId?: string }): Promise<{ eventType: string; count: number }[]> {
+  async countByEventType(filter: {
+    startTime?: string;
+    endTime?: string;
+    tenantId?: string;
+  }): Promise<{ eventType: string; count: number }[]> {
     try {
       // 实际使用 Prisma groupBy
       return [];
@@ -53,7 +59,11 @@ export class AuditQueryService {
   /**
    * 按操作结果统计
    */
-  async countByResult(filter: { startTime?: string; endTime?: string; tenantId?: string }): Promise<{ result: string; count: number }[]> {
+  async countByResult(filter: {
+    startTime?: string;
+    endTime?: string;
+    tenantId?: string;
+  }): Promise<{ result: string; count: number }[]> {
     try {
       return [];
     } catch (error) {
@@ -105,10 +115,14 @@ export class AuditQueryService {
     if (filter.startTime || filter.endTime) {
       where.timestamp = {};
       if (filter.startTime) {
-        (where.timestamp as Record<string, unknown>).gte = new Date(filter.startTime);
+        (where.timestamp as Record<string, unknown>).gte = new Date(
+          filter.startTime,
+        );
       }
       if (filter.endTime) {
-        (where.timestamp as Record<string, unknown>).lte = new Date(filter.endTime);
+        (where.timestamp as Record<string, unknown>).lte = new Date(
+          filter.endTime,
+        );
       }
     }
 

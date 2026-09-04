@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsOptional, IsObject, IsEnum, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsObject,
+  IsEnum,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 
 /**
  * 指令风险等级
@@ -71,7 +80,10 @@ export interface CommandWhitelistEntry {
   command: string;
   riskLevel: CommandRiskLevel;
   allowedParams: string[];
-  paramConstraints: Record<string, { min?: number; max?: number; enum?: string[]; type: string }>;
+  paramConstraints: Record<
+    string,
+    { min?: number; max?: number; enum?: string[]; type: string }
+  >;
   requiresConfirmation: boolean;
   rateLimitPerMinute: number;
   description: string;

@@ -48,14 +48,22 @@ export class CrlService implements OnModuleInit {
     try {
       const crlData = await this.vaultAdapter.readSecret('pki/crl/current');
       if (crlData && typeof crlData.revokedCerts === 'string') {
-        const revokedCerts = JSON.parse(crlData.revokedCerts) as RevokedCertInfo[];
+        const revokedCerts = JSON.parse(
+          crlData.revokedCerts,
+        ) as RevokedCertInfo[];
         for (const cert of revokedCerts) {
           this.revokedCerts.set(cert.serialNumber, cert);
         }
         this.crlVersion = Number(crlData.version) || 1;
-        this.lastUpdate = crlData.lastUpdate ? new Date(crlData.lastUpdate) : new Date();
-        this.nextUpdate = crlData.nextUpdate ? new Date(crlData.nextUpdate) : null;
-        this.logger.log(`CRL 加载成功，共 ${this.revokedCerts.size} 条吊销记录`);
+        this.lastUpdate = crlData.lastUpdate
+          ? new Date(crlData.lastUpdate)
+          : new Date();
+        this.nextUpdate = crlData.nextUpdate
+          ? new Date(crlData.nextUpdate)
+          : null;
+        this.logger.log(
+          `CRL 加载成功，共 ${this.revokedCerts.size} 条吊销记录`,
+        );
       }
     } catch (error) {
       this.logger.warn(`CRL 从 Vault 加载失败: ${error.message}`);
@@ -69,7 +77,11 @@ export class CrlService implements OnModuleInit {
    * @param reason 吊销原因
    * @param operatorId 操作人
    */
-  async revokeCertificate(serialNumber: string, reason: RevocationReason, operatorId: string): Promise<void> {
+  async revokeCertificate(
+    serialNumber: string,
+    reason: RevocationReason,
+    operatorId: string,
+  ): Promise<void> {
     if (this.revokedCerts.has(serialNumber)) {
       this.logger.warn(`证书 ${serialNumber} 已在吊销列表中`);
       return;
@@ -83,7 +95,9 @@ export class CrlService implements OnModuleInit {
     };
 
     this.revokedCerts.set(serialNumber, revokedInfo);
-    this.logger.log(`证书已吊销: serial=${serialNumber}, reason=${reason}, operator=${operatorId}`);
+    this.logger.log(
+      `证书已吊销: serial=${serialNumber}, reason=${reason}, operator=${operatorId}`,
+    );
 
     // 记录审计
     await this.auditRecorder.record({
@@ -175,7 +189,9 @@ export class CrlService implements OnModuleInit {
     // CRL 过期检查
     if (this.nextUpdate && new Date() > this.nextUpdate) {
       this.logger.warn('CRL 已过期，触发紧急更新');
-      this.generateAndSyncCrl().catch((err) => this.logger.error(`CRL 紧急更新失败: ${err.message}`));
+      this.generateAndSyncCrl().catch((err) =>
+        this.logger.error(`CRL 紧急更新失败: ${err.message}`),
+      );
     }
 
     return {
@@ -191,11 +207,14 @@ export class CrlService implements OnModuleInit {
   async generateAndSyncCrl(): Promise<string> {
     this.crlVersion++;
     this.lastUpdate = new Date();
-    this.nextUpdate = new Date(Date.now() + this.CRL_GENERATION_INTERVAL_HOURS * 60 * 60 * 1000);
+    this.nextUpdate = new Date(
+      Date.now() + this.CRL_GENERATION_INTERVAL_HOURS * 60 * 60 * 1000,
+    );
 
     const crlData = {
       version: this.crlVersion,
-      issuer: this.caManager.getRootCaInfo()?.subject || 'Sleep Platform Root CA',
+      issuer:
+        this.caManager.getRootCaInfo()?.subject || 'Sleep Platform Root CA',
       lastUpdate: this.lastUpdate.toISOString(),
       nextUpdate: this.nextUpdate.toISOString(),
       revokedCertificates: Array.from(this.revokedCerts.values()),
@@ -228,14 +247,21 @@ export class CrlService implements OnModuleInit {
       this.logger.error(`CRL 存储到 Vault 失败: ${error.message}`);
     }
 
-    this.logger.log(`CRL 生成并同步完成: version=${this.crlVersion}, revoked=${this.revokedCerts.size}`);
+    this.logger.log(
+      `CRL 生成并同步完成: version=${this.crlVersion}, revoked=${this.revokedCerts.size}`,
+    );
     return crlPem;
   }
 
   /**
    * 获取当前 CRL
    */
-  getCurrentCrl(): { version: number; lastUpdate: string | null; nextUpdate: string | null; revokedCount: number } {
+  getCurrentCrl(): {
+    version: number;
+    lastUpdate: string | null;
+    nextUpdate: string | null;
+    revokedCount: number;
+  } {
     return {
       version: this.crlVersion,
       lastUpdate: this.lastUpdate?.toISOString() || null,
@@ -263,10 +289,16 @@ export class CrlService implements OnModuleInit {
   /**
    * 构建 CRL PEM
    */
-  private buildCrlPem(crlData: Record<string, unknown>, signature: string): string {
+  private buildCrlPem(
+    crlData: Record<string, unknown>,
+    signature: string,
+  ): string {
     return [
       '-----BEGIN X509 CRL-----',
-      Buffer.from(JSON.stringify({ ...crlData, signature })).toString('base64').match(/.{1,64}/g)?.join('\n'),
+      Buffer.from(JSON.stringify({ ...crlData, signature }))
+        .toString('base64')
+        .match(/.{1,64}/g)
+        ?.join('\n'),
       '-----END X509 CRL-----',
     ].join('\n');
   }

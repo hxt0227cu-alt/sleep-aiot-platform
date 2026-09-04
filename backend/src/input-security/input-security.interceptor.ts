@@ -1,4 +1,11 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { PromptInjectionGuardService } from './prompt-injection-guard.service';
@@ -44,7 +51,9 @@ export class InputSecurityInterceptor implements NestInterceptor {
         const injectionResult = this.promptInjectionGuard.detect(textToCheck);
 
         if (injectionResult.action === 'block') {
-          this.logger.warn(`输入安全拦截: 提示词注入阻断, path=${path}, risk=${injectionResult.riskScore}`);
+          this.logger.warn(
+            `输入安全拦截: 提示词注入阻断, path=${path}, risk=${injectionResult.riskScore}`,
+          );
           throw new BadRequestException({
             message: '输入内容包含安全风险，已被拦截',
             code: 'INPUT_SECURITY_BLOCKED',
@@ -62,7 +71,9 @@ export class InputSecurityInterceptor implements NestInterceptor {
         });
 
         if (contentResult.action === 'block') {
-          this.logger.warn(`输入安全拦截: 内容安全阻断, path=${path}, risk=${contentResult.riskScore}`);
+          this.logger.warn(
+            `输入安全拦截: 内容安全阻断, path=${path}, risk=${contentResult.riskScore}`,
+          );
           throw new BadRequestException({
             message: '输入内容包含违规信息，已被拦截',
             code: 'CONTENT_SAFETY_BLOCKED',
@@ -80,7 +91,9 @@ export class InputSecurityInterceptor implements NestInterceptor {
 
         // 如果有 PII 检测到，记录日志但不阻断（除非配置为阻断）
         if (contentResult.piiDetected.length > 0) {
-          this.logger.debug(`输入内容检测到 PII: ${contentResult.piiDetected.map((p) => p.type).join(',')}`);
+          this.logger.debug(
+            `输入内容检测到 PII: ${contentResult.piiDetected.map((p) => p.type).join(',')}`,
+          );
         }
       }
     } catch (error) {
@@ -113,10 +126,20 @@ export class InputSecurityInterceptor implements NestInterceptor {
     if (!body) return '';
 
     // 常见文本字段
-    const textFields = ['question', 'message', 'text', 'content', 'prompt', 'input', 'query', 'voiceText', 'recognizedText'];
+    const textFields = [
+      'question',
+      'message',
+      'text',
+      'content',
+      'prompt',
+      'input',
+      'query',
+      'voiceText',
+      'recognizedText',
+    ];
     for (const field of textFields) {
       if (body[field] && typeof body[field] === 'string') {
-        return body[field] as string;
+        return body[field];
       }
     }
 
@@ -125,7 +148,7 @@ export class InputSecurityInterceptor implements NestInterceptor {
       const data = body.data as Record<string, unknown>;
       for (const field of textFields) {
         if (data[field] && typeof data[field] === 'string') {
-          return data[field] as string;
+          return data[field];
         }
       }
     }

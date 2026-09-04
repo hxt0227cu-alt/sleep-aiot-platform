@@ -45,7 +45,11 @@ export class IdempotencyService {
    * @param localSequence 设备本地序列号
    * @param eventId 事件 ID（用于追溯）
    */
-  async markProcessed(deviceId: string, localSequence: number, eventId?: string): Promise<void> {
+  async markProcessed(
+    deviceId: string,
+    localSequence: number,
+    eventId?: string,
+  ): Promise<void> {
     const key = this.buildIdempotencyKey(deviceId, localSequence);
     await this.redis.set(key, eventId || 'processed', this.IDEMPOTENCY_TTL);
   }
@@ -99,7 +103,10 @@ export class IdempotencyService {
    * @param localSequence 设备本地序列号
    * @returns 序列号状态
    */
-  async checkSequenceOrder(deviceId: string, localSequence: number): Promise<SequenceStatus> {
+  async checkSequenceOrder(
+    deviceId: string,
+    localSequence: number,
+  ): Promise<SequenceStatus> {
     const key = this.buildSequenceKey(deviceId);
     const lastSeqStr = await this.redis.get(key);
     const lastSeq = lastSeqStr ? parseInt(lastSeqStr, 10) : -1;
@@ -111,15 +118,30 @@ export class IdempotencyService {
     // 处理序列号回绕
     if (localSequence < lastSeq - this.SEQUENCE_WRAP_THRESHOLD / 2) {
       // 可能是回绕后的新序列号
-      return { status: 'wrap_detected', expectedNext: 0, isOutOfOrder: false, lastSequence: lastSeq };
+      return {
+        status: 'wrap_detected',
+        expectedNext: 0,
+        isOutOfOrder: false,
+        lastSequence: lastSeq,
+      };
     }
 
     if (localSequence === lastSeq) {
-      return { status: 'duplicate', expectedNext: lastSeq + 1, isOutOfOrder: false, lastSequence: lastSeq };
+      return {
+        status: 'duplicate',
+        expectedNext: lastSeq + 1,
+        isOutOfOrder: false,
+        lastSequence: lastSeq,
+      };
     }
 
     if (localSequence < lastSeq) {
-      return { status: 'out_of_order', expectedNext: lastSeq + 1, isOutOfOrder: true, lastSequence: lastSeq };
+      return {
+        status: 'out_of_order',
+        expectedNext: lastSeq + 1,
+        isOutOfOrder: true,
+        lastSequence: lastSeq,
+      };
     }
 
     if (localSequence > lastSeq + 1) {
@@ -134,13 +156,21 @@ export class IdempotencyService {
       };
     }
 
-    return { status: 'in_order', expectedNext: localSequence + 1, isOutOfOrder: false, lastSequence: lastSeq };
+    return {
+      status: 'in_order',
+      expectedNext: localSequence + 1,
+      isOutOfOrder: false,
+      lastSequence: lastSeq,
+    };
   }
 
   /**
    * 更新最新序列号
    */
-  async updateLastSequence(deviceId: string, localSequence: number): Promise<void> {
+  async updateLastSequence(
+    deviceId: string,
+    localSequence: number,
+  ): Promise<void> {
     const key = this.buildSequenceKey(deviceId);
     await this.redis.set(key, String(localSequence));
   }
@@ -157,7 +187,10 @@ export class IdempotencyService {
   /**
    * 批量幂等校验
    */
-  async filterProcessed(deviceId: string, sequences: number[]): Promise<{ processed: number[]; unprocessed: number[] }> {
+  async filterProcessed(
+    deviceId: string,
+    sequences: number[],
+  ): Promise<{ processed: number[]; unprocessed: number[] }> {
     const processed: number[] = [];
     const unprocessed: number[] = [];
 
@@ -201,7 +234,13 @@ export class IdempotencyService {
  * 序列号状态
  */
 export interface SequenceStatus {
-  status: 'first' | 'in_order' | 'out_of_order' | 'duplicate' | 'gap_detected' | 'wrap_detected';
+  status:
+    | 'first'
+    | 'in_order'
+    | 'out_of_order'
+    | 'duplicate'
+    | 'gap_detected'
+    | 'wrap_detected';
   expectedNext: number;
   isOutOfOrder: boolean;
   lastSequence?: number;

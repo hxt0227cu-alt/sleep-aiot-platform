@@ -239,7 +239,9 @@ describe('严格模式 TENANT_FAIL_CLOSED（P2 审计收紧）', () => {
     expect(isStrictFailClosed()).toBe(false);
     const { extend } = makeFakeClient();
     const scoped = extend(makeTenantQueryExtension());
-    expect(() => scoped.Device.findMany({ where: { status: 'x' } })).not.toThrow();
+    expect(() =>
+      scoped.Device.findMany({ where: { status: 'x' } }),
+    ).not.toThrow();
   });
 
   it('开启后：非健康租户模型无上下文且无显式 tenantId 抛错', () => {

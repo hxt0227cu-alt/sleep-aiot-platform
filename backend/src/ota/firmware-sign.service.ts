@@ -36,7 +36,9 @@ export class FirmwareSignService {
     this.signingPublicKey = process.env.FIRMWARE_SIGNING_PUBLIC_KEY || null;
 
     if (!this.signingPublicKey) {
-      this.logger.warn('固件签名公钥未配置，使用开发模式（签名验证将使用哈希校验）');
+      this.logger.warn(
+        '固件签名公钥未配置，使用开发模式（签名验证将使用哈希校验）',
+      );
     } else {
       this.logger.log('固件签名公钥加载成功');
     }
@@ -50,14 +52,23 @@ export class FirmwareSignService {
    * @param firmwareVersion 固件版本号
    * @returns 验证结果
    */
-  verifySignature(firmwareData: Buffer, signature: string, firmwareVersion: string): FirmwareVerificationResult {
-    this.logger.debug(`固件签名验证: version=${firmwareVersion}, dataSize=${firmwareData.length}`);
+  verifySignature(
+    firmwareData: Buffer,
+    signature: string,
+    firmwareVersion: string,
+  ): FirmwareVerificationResult {
+    this.logger.debug(
+      `固件签名验证: version=${firmwareVersion}, dataSize=${firmwareData.length}`,
+    );
 
     const startTime = Date.now();
 
     try {
       // 1. 计算固件哈希
-      const firmwareHash = crypto.createHash('sha256').update(firmwareData).digest('hex');
+      const firmwareHash = crypto
+        .createHash('sha256')
+        .update(firmwareData)
+        .digest('hex');
 
       // 2. 验证签名
       let signatureValid: boolean;
@@ -66,7 +77,10 @@ export class FirmwareSignService {
         const verify = crypto.createVerify('SHA256');
         verify.update(firmwareData);
         verify.end();
-        signatureValid = verify.verify(this.signingPublicKey, Buffer.from(signature, 'base64'));
+        signatureValid = verify.verify(
+          this.signingPublicKey,
+          Buffer.from(signature, 'base64'),
+        );
       } else {
         // 开发模式：仅验证签名格式和哈希匹配
         signatureValid = this.devModeVerify(firmwareHash, signature);
@@ -94,7 +108,9 @@ export class FirmwareSignService {
       };
       this.verifiedFirmwares.set(firmwareVersion, verifiedInfo);
 
-      this.logger.log(`固件签名验证通过: version=${firmwareVersion}, hash=${firmwareHash.substring(0, 16)}...`);
+      this.logger.log(
+        `固件签名验证通过: version=${firmwareVersion}, hash=${firmwareHash.substring(0, 16)}...`,
+      );
 
       return {
         valid: true,
@@ -126,7 +142,11 @@ export class FirmwareSignService {
    * @param allowDowngrade 是否允许降级（默认 false）
    * @returns 验证结果
    */
-  verifyAntiRollback(currentVersion: string, newVersion: string, allowDowngrade: boolean = false): {
+  verifyAntiRollback(
+    currentVersion: string,
+    newVersion: string,
+    allowDowngrade: boolean = false,
+  ): {
     allowed: boolean;
     reason?: string;
     currentVersion: string;
@@ -164,16 +184,24 @@ export class FirmwareSignService {
   /**
    * 验证固件完整性（哈希校验）
    */
-  verifyIntegrity(firmwareData: Buffer, expectedHash: string): {
+  verifyIntegrity(
+    firmwareData: Buffer,
+    expectedHash: string,
+  ): {
     valid: boolean;
     actualHash: string;
     expectedHash: string;
   } {
-    const actualHash = crypto.createHash('sha256').update(firmwareData).digest('hex');
+    const actualHash = crypto
+      .createHash('sha256')
+      .update(firmwareData)
+      .digest('hex');
     const valid = actualHash.toLowerCase() === expectedHash.toLowerCase();
 
     if (!valid) {
-      this.logger.error(`固件完整性校验失败: expected=${expectedHash.substring(0, 16)}..., actual=${actualHash.substring(0, 16)}...`);
+      this.logger.error(
+        `固件完整性校验失败: expected=${expectedHash.substring(0, 16)}..., actual=${actualHash.substring(0, 16)}...`,
+      );
     }
 
     return { valid, actualHash, expectedHash };
@@ -200,7 +228,10 @@ export class FirmwareSignService {
     // 开发模式：验证签名是否为固件哈希的 Base64 编码
     try {
       const decoded = Buffer.from(signature, 'base64').toString('utf-8');
-      return decoded === firmwareHash || decoded.includes(firmwareHash.substring(0, 32));
+      return (
+        decoded === firmwareHash ||
+        decoded.includes(firmwareHash.substring(0, 32))
+      );
     } catch {
       return false;
     }
@@ -210,8 +241,14 @@ export class FirmwareSignService {
    * 比较语义化版本号
    */
   private compareVersions(v1: string, v2: string): number {
-    const parts1 = v1.replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
-    const parts2 = v2.replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
+    const parts1 = v1
+      .replace(/^v/, '')
+      .split('.')
+      .map((n) => parseInt(n, 10) || 0);
+    const parts2 = v2
+      .replace(/^v/, '')
+      .split('.')
+      .map((n) => parseInt(n, 10) || 0);
     const maxLen = Math.max(parts1.length, parts2.length);
 
     for (let i = 0; i < maxLen; i++) {

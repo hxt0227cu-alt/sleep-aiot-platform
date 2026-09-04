@@ -20,7 +20,8 @@ export class TracingService {
   private readonly enabled = process.env.TRACING_ENABLED !== 'false';
 
   /** 服务名 */
-  private readonly serviceName = process.env.SERVICE_NAME || 'sleep-platform-backend';
+  private readonly serviceName =
+    process.env.SERVICE_NAME || 'sleep-platform-backend';
 
   /** 当前活跃的 Span 栈 */
   private spanStack: Span[] = [];
@@ -34,7 +35,12 @@ export class TracingService {
    */
   startTrace(name: string, traceId?: string): TraceContext {
     if (!this.enabled) {
-      return { traceId: traceId || 'disabled', spanId: 'disabled', name, startTime: Date.now() };
+      return {
+        traceId: traceId || 'disabled',
+        spanId: 'disabled',
+        name,
+        startTime: Date.now(),
+      };
     }
 
     const context: TraceContext = {
@@ -58,7 +64,13 @@ export class TracingService {
    */
   startSpan(name: string, parentContext?: TraceContext): SpanContext {
     if (!this.enabled) {
-      return { traceId: parentContext?.traceId || 'disabled', spanId: 'disabled', parentSpanId: parentContext?.spanId, name, startTime: Date.now() };
+      return {
+        traceId: parentContext?.traceId || 'disabled',
+        spanId: 'disabled',
+        parentSpanId: parentContext?.spanId,
+        name,
+        startTime: Date.now(),
+      };
     }
 
     const span: Span = {
@@ -73,7 +85,9 @@ export class TracingService {
     };
 
     this.spanStack.push(span);
-    this.logger.debug(`Span 开始: ${span.spanId}, name=${name}, trace=${span.traceId}`);
+    this.logger.debug(
+      `Span 开始: ${span.spanId}, name=${name}, trace=${span.traceId}`,
+    );
     return span;
   }
 
@@ -84,10 +98,16 @@ export class TracingService {
    * @param status 状态（0=OK, 1=ERROR）
    * @param attributes 附加属性
    */
-  endSpan(context: SpanContext, status: number = 0, attributes?: Record<string, string>): void {
+  endSpan(
+    context: SpanContext,
+    status: number = 0,
+    attributes?: Record<string, string>,
+  ): void {
     if (!this.enabled) return;
 
-    const spanIndex = this.spanStack.findIndex((s) => s.spanId === context.spanId);
+    const spanIndex = this.spanStack.findIndex(
+      (s) => s.spanId === context.spanId,
+    );
     if (spanIndex === -1) {
       this.logger.warn(`Span 未找到: ${context.spanId}`);
       return;
@@ -107,13 +127,19 @@ export class TracingService {
     // 从栈中移除
     this.spanStack.splice(spanIndex, 1);
 
-    this.logger.debug(`Span 结束: ${span.spanId}, duration=${span.durationMs}ms, status=${status}`);
+    this.logger.debug(
+      `Span 结束: ${span.spanId}, duration=${span.durationMs}ms, status=${status}`,
+    );
   }
 
   /**
    * 为 Span 添加事件
    */
-  addSpanEvent(context: SpanContext, eventName: string, attributes?: Record<string, string>): void {
+  addSpanEvent(
+    context: SpanContext,
+    eventName: string,
+    attributes?: Record<string, string>,
+  ): void {
     if (!this.enabled) return;
 
     const span = this.spanStack.find((s) => s.spanId === context.spanId);
@@ -141,14 +167,21 @@ export class TracingService {
   /**
    * 从 HTTP Header 提取 Trace 上下文
    */
-  extractFromHttpHeaders(headers: Record<string, string | string[] | undefined>): TraceContext | null {
+  extractFromHttpHeaders(
+    headers: Record<string, string | string[] | undefined>,
+  ): TraceContext | null {
     const traceParent = headers['traceparent'] as string | undefined;
     if (!traceParent) {
       // 尝试自定义 Header
       const traceId = headers['x-trace-id'] as string | undefined;
       const spanId = headers['x-span-id'] as string | undefined;
       if (traceId) {
-        return { traceId, spanId: spanId || this.generateSpanId(), name: 'http-request', startTime: Date.now() };
+        return {
+          traceId,
+          spanId: spanId || this.generateSpanId(),
+          name: 'http-request',
+          startTime: Date.now(),
+        };
       }
       return null;
     }
@@ -192,7 +225,9 @@ export class TracingService {
   /**
    * 从 MQTT 消息提取 Trace 上下文
    */
-  extractFromMqttMessage(properties: Record<string, string>): TraceContext | null {
+  extractFromMqttMessage(
+    properties: Record<string, string>,
+  ): TraceContext | null {
     if (properties.traceId) {
       return {
         traceId: properties.traceId,
@@ -237,7 +272,7 @@ export class TracingService {
     if (this.environment !== 'production') {
       this.logger.debug(
         `Span 导出: trace=${span.traceId}, span=${span.spanId}, parent=${span.parentSpanId}, ` +
-        `name=${span.name}, duration=${span.durationMs}ms, status=${span.status.code}`,
+          `name=${span.name}, duration=${span.durationMs}ms, status=${span.status.code}`,
       );
     }
 
@@ -284,6 +319,10 @@ interface Span {
   endTime?: number;
   durationMs?: number;
   attributes: Record<string, string>;
-  events: Array<{ name: string; timestamp: number; attributes: Record<string, string> }>;
+  events: Array<{
+    name: string;
+    timestamp: number;
+    attributes: Record<string, string>;
+  }>;
   status: { code: number; message?: string };
 }

@@ -30,7 +30,15 @@ export class UserRateLimiterService {
   /**
    * 检查用户登录限流
    */
-  async checkLoginLimit(userId: string, ip?: string): Promise<{ allowed: boolean; retryAfter: number; current: number; limit: number }> {
+  async checkLoginLimit(
+    userId: string,
+    ip?: string,
+  ): Promise<{
+    allowed: boolean;
+    retryAfter: number;
+    current: number;
+    limit: number;
+  }> {
     const key = `${this.PREFIX}${userId}:login:min`;
     const current = await this.redis.incr(key);
     if (current === 1) {
@@ -41,7 +49,9 @@ export class UserRateLimiterService {
     const allowed = current <= limit;
 
     if (!allowed) {
-      this.logger.warn(`用户登录限流: user=${userId}, attempts=${current}, ip=${ip}`);
+      this.logger.warn(
+        `用户登录限流: user=${userId}, attempts=${current}, ip=${ip}`,
+      );
     }
 
     return { allowed, retryAfter: allowed ? 0 : 60, current, limit };
@@ -50,7 +60,12 @@ export class UserRateLimiterService {
   /**
    * 检查用户 API 调用限流
    */
-  async checkApiLimit(userId: string): Promise<{ allowed: boolean; retryAfter: number; current: number; limit: number }> {
+  async checkApiLimit(userId: string): Promise<{
+    allowed: boolean;
+    retryAfter: number;
+    current: number;
+    limit: number;
+  }> {
     const key = `${this.PREFIX}${userId}:api:min`;
     const current = await this.redis.incr(key);
     if (current === 1) {
@@ -58,13 +73,23 @@ export class UserRateLimiterService {
     }
 
     const limit = this.DEFAULT_LIMITS.apiCallsPerMinute;
-    return { allowed: current <= limit, retryAfter: current <= limit ? 0 : 60, current, limit };
+    return {
+      allowed: current <= limit,
+      retryAfter: current <= limit ? 0 : 60,
+      current,
+      limit,
+    };
   }
 
   /**
    * 检查用户 AI 请求限流
    */
-  async checkAiRequestLimit(userId: string): Promise<{ allowed: boolean; retryAfter: number; current: number; limit: number }> {
+  async checkAiRequestLimit(userId: string): Promise<{
+    allowed: boolean;
+    retryAfter: number;
+    current: number;
+    limit: number;
+  }> {
     const key = `${this.PREFIX}${userId}:ai:min`;
     const current = await this.redis.incr(key);
     if (current === 1) {
@@ -72,13 +97,23 @@ export class UserRateLimiterService {
     }
 
     const limit = this.DEFAULT_LIMITS.aiRequestsPerMinute;
-    return { allowed: current <= limit, retryAfter: current <= limit ? 0 : 60, current, limit };
+    return {
+      allowed: current <= limit,
+      retryAfter: current <= limit ? 0 : 60,
+      current,
+      limit,
+    };
   }
 
   /**
    * 检查用户设备指令限流
    */
-  async checkDeviceCommandLimit(userId: string): Promise<{ allowed: boolean; retryAfter: number; current: number; limit: number }> {
+  async checkDeviceCommandLimit(userId: string): Promise<{
+    allowed: boolean;
+    retryAfter: number;
+    current: number;
+    limit: number;
+  }> {
     const key = `${this.PREFIX}${userId}:device:min`;
     const current = await this.redis.incr(key);
     if (current === 1) {
@@ -86,13 +121,23 @@ export class UserRateLimiterService {
     }
 
     const limit = this.DEFAULT_LIMITS.deviceCommandsPerMinute;
-    return { allowed: current <= limit, retryAfter: current <= limit ? 0 : 60, current, limit };
+    return {
+      allowed: current <= limit,
+      retryAfter: current <= limit ? 0 : 60,
+      current,
+      limit,
+    };
   }
 
   /**
    * 检查密码重置限流
    */
-  async checkPasswordResetLimit(userId: string): Promise<{ allowed: boolean; retryAfter: number; current: number; limit: number }> {
+  async checkPasswordResetLimit(userId: string): Promise<{
+    allowed: boolean;
+    retryAfter: number;
+    current: number;
+    limit: number;
+  }> {
     const key = `${this.PREFIX}${userId}:password-reset:day`;
     const current = await this.redis.incr(key);
     if (current === 1) {
@@ -100,7 +145,12 @@ export class UserRateLimiterService {
     }
 
     const limit = this.DEFAULT_LIMITS.passwordResetPerDay;
-    return { allowed: current <= limit, retryAfter: current <= limit ? 0 : 86400, current, limit };
+    return {
+      allowed: current <= limit,
+      retryAfter: current <= limit ? 0 : 86400,
+      current,
+      limit,
+    };
   }
 
   /**
@@ -123,9 +173,18 @@ export class UserRateLimiterService {
 
     return {
       userId,
-      apiCallsPerMinute: { current: parseInt(apiMin || '0', 10), limit: this.DEFAULT_LIMITS.apiCallsPerMinute },
-      aiRequestsPerMinute: { current: parseInt(aiMin || '0', 10), limit: this.DEFAULT_LIMITS.aiRequestsPerMinute },
-      deviceCommandsPerMinute: { current: parseInt(deviceMin || '0', 10), limit: this.DEFAULT_LIMITS.deviceCommandsPerMinute },
+      apiCallsPerMinute: {
+        current: parseInt(apiMin || '0', 10),
+        limit: this.DEFAULT_LIMITS.apiCallsPerMinute,
+      },
+      aiRequestsPerMinute: {
+        current: parseInt(aiMin || '0', 10),
+        limit: this.DEFAULT_LIMITS.aiRequestsPerMinute,
+      },
+      deviceCommandsPerMinute: {
+        current: parseInt(deviceMin || '0', 10),
+        limit: this.DEFAULT_LIMITS.deviceCommandsPerMinute,
+      },
     };
   }
 }

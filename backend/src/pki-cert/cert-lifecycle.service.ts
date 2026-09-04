@@ -29,7 +29,9 @@ export class CertLifecycleService {
   /**
    * 签发新证书
    */
-  async issueCertificate(request: Parameters<CertSignService['signDeviceCertificate']>[0]) {
+  async issueCertificate(
+    request: Parameters<CertSignService['signDeviceCertificate']>[0],
+  ) {
     return this.certSignService.signDeviceCertificate(request);
   }
 
@@ -44,8 +46,15 @@ export class CertLifecycleService {
     oldSerialNumber: string,
     operatorId: string,
     tenantId?: string,
-  ): Promise<{ newCertificate: Awaited<ReturnType<CertSignService['signDeviceCertificate']>>; oldCertRevocationDelayHours: number }> {
-    this.logger.log(`证书轮换: device=${deviceId}, oldSerial=${oldSerialNumber}`);
+  ): Promise<{
+    newCertificate: Awaited<
+      ReturnType<CertSignService['signDeviceCertificate']>
+    >;
+    oldCertRevocationDelayHours: number;
+  }> {
+    this.logger.log(
+      `证书轮换: device=${deviceId}, oldSerial=${oldSerialNumber}`,
+    );
 
     // 1. 签发新证书
     const newCertificate = await this.certSignService.signDeviceCertificate({
@@ -56,7 +65,12 @@ export class CertLifecycleService {
 
     // 2. 旧证书设置延迟吊销（24 小时宽限期，允许设备完成切换）
     const gracePeriodHours = 24;
-    this.scheduleRevocation(oldSerialNumber, RevocationReason.SUPERSEDED, operatorId, gracePeriodHours);
+    this.scheduleRevocation(
+      oldSerialNumber,
+      RevocationReason.SUPERSEDED,
+      operatorId,
+      gracePeriodHours,
+    );
 
     // 3. 记录审计
     await this.auditRecorder.record({
@@ -80,24 +94,48 @@ export class CertLifecycleService {
   /**
    * 吊销证书
    */
-  async revokeCertificate(serialNumber: string, reason: RevocationReason, operatorId: string): Promise<void> {
+  async revokeCertificate(
+    serialNumber: string,
+    reason: RevocationReason,
+    operatorId: string,
+  ): Promise<void> {
     await this.crlService.revokeCertificate(serialNumber, reason, operatorId);
   }
 
   /**
    * 设备 RMA（返修/报废）时吊销证书
    */
-  async revokeForRma(deviceId: string, serialNumber: string, operatorId: string): Promise<void> {
-    this.logger.log(`设备 RMA 证书吊销: device=${deviceId}, serial=${serialNumber}`);
-    await this.crlService.revokeCertificate(serialNumber, RevocationReason.DEVICE_RMA, operatorId);
+  async revokeForRma(
+    deviceId: string,
+    serialNumber: string,
+    operatorId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `设备 RMA 证书吊销: device=${deviceId}, serial=${serialNumber}`,
+    );
+    await this.crlService.revokeCertificate(
+      serialNumber,
+      RevocationReason.DEVICE_RMA,
+      operatorId,
+    );
   }
 
   /**
    * 设备退役时吊销证书
    */
-  async revokeForDecommission(deviceId: string, serialNumber: string, operatorId: string): Promise<void> {
-    this.logger.log(`设备退役证书吊销: device=${deviceId}, serial=${serialNumber}`);
-    await this.crlService.revokeCertificate(serialNumber, RevocationReason.DEVICE_DECOMMISSIONED, operatorId);
+  async revokeForDecommission(
+    deviceId: string,
+    serialNumber: string,
+    operatorId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `设备退役证书吊销: device=${deviceId}, serial=${serialNumber}`,
+    );
+    await this.crlService.revokeCertificate(
+      serialNumber,
+      RevocationReason.DEVICE_DECOMMISSIONED,
+      operatorId,
+    );
   }
 
   /**
@@ -106,7 +144,9 @@ export class CertLifecycleService {
   checkCertExpiry(notAfter: string): CertExpiryStatus {
     const expiryDate = new Date(notAfter);
     const now = new Date();
-    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.ceil(
+      (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     if (daysUntilExpiry <= 0) {
       return { status: 'expired', daysUntilExpiry, actionRequired: true };
@@ -123,7 +163,9 @@ export class CertLifecycleService {
   /**
    * 获取即将过期的证书列表（用于定时提醒）
    */
-  async getExpiringCertificates(thresholdDays: number = 30): Promise<ExpiringCertificate[]> {
+  async getExpiringCertificates(
+    thresholdDays: number = 30,
+  ): Promise<ExpiringCertificate[]> {
     // 实际实现应从数据库查询，这里返回空列表
     this.logger.debug(`查询 ${thresholdDays} 天内过期的证书`);
     return [];
@@ -132,8 +174,13 @@ export class CertLifecycleService {
   /**
    * 触发证书过期提醒
    */
-  async triggerExpiryReminders(): Promise<{ warned: number; critical: number }> {
-    const expiring = await this.getExpiringCertificates(this.EXPIRY_WARNING_THRESHOLD_DAYS);
+  async triggerExpiryReminders(): Promise<{
+    warned: number;
+    critical: number;
+  }> {
+    const expiring = await this.getExpiringCertificates(
+      this.EXPIRY_WARNING_THRESHOLD_DAYS,
+    );
     let warned = 0;
     let critical = 0;
 
@@ -141,10 +188,14 @@ export class CertLifecycleService {
       const status = this.checkCertExpiry(cert.notAfter);
       if (status.status === 'critical') {
         critical++;
-        this.logger.error(`证书紧急过期提醒: device=${cert.deviceId}, serial=${cert.serialNumber}, 剩余 ${status.daysUntilExpiry} 天`);
+        this.logger.error(
+          `证书紧急过期提醒: device=${cert.deviceId}, serial=${cert.serialNumber}, 剩余 ${status.daysUntilExpiry} 天`,
+        );
       } else if (status.status === 'warning') {
         warned++;
-        this.logger.warn(`证书过期提醒: device=${cert.deviceId}, serial=${cert.serialNumber}, 剩余 ${status.daysUntilExpiry} 天`);
+        this.logger.warn(
+          `证书过期提醒: device=${cert.deviceId}, serial=${cert.serialNumber}, 剩余 ${status.daysUntilExpiry} 天`,
+        );
       }
     }
 
@@ -154,14 +205,25 @@ export class CertLifecycleService {
   /**
    * 调度延迟吊销
    */
-  private scheduleRevocation(serialNumber: string, reason: RevocationReason, operatorId: string, delayHours: number): void {
+  private scheduleRevocation(
+    serialNumber: string,
+    reason: RevocationReason,
+    operatorId: string,
+    delayHours: number,
+  ): void {
     const delayMs = delayHours * 60 * 60 * 1000;
     setTimeout(() => {
-      this.crlService.revokeCertificate(serialNumber, reason, operatorId).catch((err) => {
-        this.logger.error(`延迟吊销失败: serial=${serialNumber}, error=${err.message}`);
-      });
+      this.crlService
+        .revokeCertificate(serialNumber, reason, operatorId)
+        .catch((err) => {
+          this.logger.error(
+            `延迟吊销失败: serial=${serialNumber}, error=${err.message}`,
+          );
+        });
     }, delayMs);
-    this.logger.log(`已调度延迟吊销: serial=${serialNumber}, delay=${delayHours}h`);
+    this.logger.log(
+      `已调度延迟吊销: serial=${serialNumber}, delay=${delayHours}h`,
+    );
   }
 }
 

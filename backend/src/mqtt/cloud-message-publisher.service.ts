@@ -62,7 +62,6 @@ export class CloudMessagePublisherService {
     // 按类型统计
     this.messageStats.messagesByType[message.type] =
       (this.messageStats.messagesByType[message.type] || 0) + 1;
-
   }
 
   /**
@@ -182,9 +181,7 @@ export class CloudMessagePublisherService {
       );
     }
 
-    this.logger.debug(
-      `Command message sent to device ${deviceId}: ${command}`,
-    );
+    this.logger.debug(`Command message sent to device ${deviceId}: ${command}`);
     return commandId;
   }
 

@@ -52,12 +52,18 @@ export class CircuitBreakerService {
         // 熔断中，执行降级
         this.logger.warn(`熔断器 ${name} 处于开启状态，执行降级`);
         if (fallback) return fallback();
-        throw new CircuitBreakerOpenError(name, breaker.openedAt + breaker.config.timeoutMs - Date.now());
+        throw new CircuitBreakerOpenError(
+          name,
+          breaker.openedAt + breaker.config.timeoutMs - Date.now(),
+        );
       }
     }
 
     // 半开状态限制请求数
-    if (breaker.state === 'HALF_OPEN' && breaker.halfOpenRequests >= breaker.config.halfOpenMaxRequests) {
+    if (
+      breaker.state === 'HALF_OPEN' &&
+      breaker.halfOpenRequests >= breaker.config.halfOpenMaxRequests
+    ) {
       this.logger.warn(`熔断器 ${name} 半开状态请求数已满，执行降级`);
       if (fallback) return fallback();
       throw new CircuitBreakerOpenError(name, 5000);
@@ -101,7 +107,11 @@ export class CircuitBreakerService {
   /**
    * 记录失败
    */
-  private recordFailure(name: string, breaker: CircuitBreakerState, error: Error): void {
+  private recordFailure(
+    name: string,
+    breaker: CircuitBreakerState,
+    error: Error,
+  ): void {
     breaker.consecutiveFailures++;
     breaker.lastFailure = error.message;
     breaker.lastFailureTime = Date.now();
@@ -112,14 +122,18 @@ export class CircuitBreakerService {
       breaker.openedAt = Date.now();
       breaker.halfOpenRequests = 0;
       breaker.halfOpenSuccesses = 0;
-      this.logger.warn(`熔断器 ${name} 半开状态失败，重新熔断: ${error.message}`);
+      this.logger.warn(
+        `熔断器 ${name} 半开状态失败，重新熔断: ${error.message}`,
+      );
       return;
     }
 
     if (breaker.consecutiveFailures >= breaker.config.failureThreshold) {
       breaker.state = 'OPEN';
       breaker.openedAt = Date.now();
-      this.logger.error(`熔断器 ${name} 触发熔断: 连续失败 ${breaker.consecutiveFailures} 次, 最后错误: ${error.message}`);
+      this.logger.error(
+        `熔断器 ${name} 触发熔断: 连续失败 ${breaker.consecutiveFailures} 次, 最后错误: ${error.message}`,
+      );
     }
   }
 
@@ -154,9 +168,13 @@ export class CircuitBreakerService {
       name: breaker.name,
       state: breaker.state,
       consecutiveFailures: breaker.consecutiveFailures,
-      openedAt: breaker.openedAt ? new Date(breaker.openedAt).toISOString() : null,
+      openedAt: breaker.openedAt
+        ? new Date(breaker.openedAt).toISOString()
+        : null,
       lastFailure: breaker.lastFailure,
-      lastFailureTime: breaker.lastFailureTime ? new Date(breaker.lastFailureTime).toISOString() : null,
+      lastFailureTime: breaker.lastFailureTime
+        ? new Date(breaker.lastFailureTime).toISOString()
+        : null,
       config: breaker.config,
     };
   }
@@ -242,8 +260,13 @@ export interface CircuitBreakerStatus {
  * 熔断器开启错误
  */
 export class CircuitBreakerOpenError extends Error {
-  constructor(public readonly breakerName: string, public readonly retryAfterMs: number) {
-    super(`Circuit breaker '${breakerName}' is open, retry after ${retryAfterMs}ms`);
+  constructor(
+    public readonly breakerName: string,
+    public readonly retryAfterMs: number,
+  ) {
+    super(
+      `Circuit breaker '${breakerName}' is open, retry after ${retryAfterMs}ms`,
+    );
     this.name = 'CircuitBreakerOpenError';
   }
 }

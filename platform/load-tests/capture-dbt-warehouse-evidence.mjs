@@ -91,7 +91,7 @@ const evidence = {
   ],
 };
 
-const outputDirectory = resolve(workspace, '202607worklog/performance/raw');
+const outputDirectory = resolve(workspace, process.env.EVIDENCE_OUTPUT_DIR ?? '202607worklog/performance/raw');
 const outputPath = resolve(outputDirectory, `${runId}.json`);
 await mkdir(outputDirectory, { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');

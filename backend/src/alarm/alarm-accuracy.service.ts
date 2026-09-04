@@ -12,7 +12,12 @@ export class AlarmAccuracyService {
   private readonly logger = new Logger(AlarmAccuracyService.name);
 
   /** 报警类型列表 */
-  private readonly ALARM_TYPES = ['heart_rate', 'respiration', 'bed_exit', 'movement'] as const;
+  private readonly ALARM_TYPES = [
+    'heart_rate',
+    'respiration',
+    'bed_exit',
+    'movement',
+  ] as const;
 
   /**
    * 计算单类型报警准确率指标
@@ -27,14 +32,22 @@ export class AlarmAccuracyService {
     trueNegatives: number;
     falseNegatives: number;
   }): AlarmAccuracyMetricsDto {
-    const { truePositives: tp, falsePositives: fp, trueNegatives: tn, falseNegatives: fn } = data;
+    const {
+      truePositives: tp,
+      falsePositives: fp,
+      trueNegatives: tn,
+      falseNegatives: fn,
+    } = data;
 
     const sensitivity = tp + fn > 0 ? tp / (tp + fn) : 0;
     const specificity = tn + fp > 0 ? tn / (tn + fp) : 0;
     const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
     const falseAlarmRate = fp + tn > 0 ? fp / (fp + tn) : 0;
     const missRate = tp + fn > 0 ? fn / (tp + fn) : 0;
-    const f1Score = precision + sensitivity > 0 ? (2 * precision * sensitivity) / (precision + sensitivity) : 0;
+    const f1Score =
+      precision + sensitivity > 0
+        ? (2 * precision * sensitivity) / (precision + sensitivity)
+        : 0;
 
     return {
       ...data,
@@ -51,13 +64,15 @@ export class AlarmAccuracyService {
   /**
    * 批量计算所有类型报警准确率
    */
-  calculateAllMetrics(confusionMatrices: Array<{
-    alarmType: string;
-    truePositives: number;
-    falsePositives: number;
-    trueNegatives: number;
-    falseNegatives: number;
-  }>): AlarmAccuracyMetricsDto[] {
+  calculateAllMetrics(
+    confusionMatrices: Array<{
+      alarmType: string;
+      truePositives: number;
+      falsePositives: number;
+      trueNegatives: number;
+      falseNegatives: number;
+    }>,
+  ): AlarmAccuracyMetricsDto[] {
     return confusionMatrices.map((matrix) => this.calculateMetrics(matrix));
   }
 
@@ -87,12 +102,18 @@ export class AlarmAccuracyService {
       const curr = current.find((c) => c.alarmType === type);
 
       if (base && curr) {
-        const sensitivityDelta = (curr.sensitivity || 0) - (base.sensitivity || 0);
-        const specificityDelta = (curr.specificity || 0) - (base.specificity || 0);
-        const falseAlarmDelta = (curr.falseAlarmRate || 0) - (base.falseAlarmRate || 0);
+        const sensitivityDelta =
+          (curr.sensitivity || 0) - (base.sensitivity || 0);
+        const specificityDelta =
+          (curr.specificity || 0) - (base.specificity || 0);
+        const falseAlarmDelta =
+          (curr.falseAlarmRate || 0) - (base.falseAlarmRate || 0);
 
         // 退化判定：灵敏度下降超过2%或特异度下降超过2%或误报率上升超过1%
-        const degraded = sensitivityDelta < -0.02 || specificityDelta < -0.02 || falseAlarmDelta > 0.01;
+        const degraded =
+          sensitivityDelta < -0.02 ||
+          specificityDelta < -0.02 ||
+          falseAlarmDelta > 0.01;
 
         comparisons.push({
           alarmType: type,
@@ -117,8 +138,12 @@ export class AlarmAccuracyService {
       overallDegraded: anyDegraded,
       summary: {
         typesEvaluated: comparisons.length,
-        degradedTypes: comparisons.filter((c) => c.degraded).map((c) => c.alarmType),
-        passedTypes: comparisons.filter((c) => !c.degraded).map((c) => c.alarmType),
+        degradedTypes: comparisons
+          .filter((c) => c.degraded)
+          .map((c) => c.alarmType),
+        passedTypes: comparisons
+          .filter((c) => !c.degraded)
+          .map((c) => c.alarmType),
       },
     };
   }
@@ -126,7 +151,11 @@ export class AlarmAccuracyService {
   /**
    * 生成报警准确率评估报告
    */
-  generateReport(metrics: AlarmAccuracyMetricsDto[], datasetVersion: string, algorithmVersion: string): AlarmAccuracyReport {
+  generateReport(
+    metrics: AlarmAccuracyMetricsDto[],
+    datasetVersion: string,
+    algorithmVersion: string,
+  ): AlarmAccuracyReport {
     const testedAt = new Date().toISOString();
 
     const report: AlarmAccuracyReport = {
@@ -137,25 +166,53 @@ export class AlarmAccuracyService {
       metrics: metrics.map((m) => ({ ...m, testedAt })),
       summary: {
         totalTypes: metrics.length,
-        averageSensitivity: metrics.length > 0 ? metrics.reduce((acc, m) => acc + (m.sensitivity || 0), 0) / metrics.length : 0,
-        averageSpecificity: metrics.length > 0 ? metrics.reduce((acc, m) => acc + (m.specificity || 0), 0) / metrics.length : 0,
-        averageFalseAlarmRate: metrics.length > 0 ? metrics.reduce((acc, m) => acc + (m.falseAlarmRate || 0), 0) / metrics.length : 0,
-        totalSamples: metrics.reduce((acc, m) => acc + (m.totalSamples || 0), 0),
+        averageSensitivity:
+          metrics.length > 0
+            ? metrics.reduce((acc, m) => acc + (m.sensitivity || 0), 0) /
+              metrics.length
+            : 0,
+        averageSpecificity:
+          metrics.length > 0
+            ? metrics.reduce((acc, m) => acc + (m.specificity || 0), 0) /
+              metrics.length
+            : 0,
+        averageFalseAlarmRate:
+          metrics.length > 0
+            ? metrics.reduce((acc, m) => acc + (m.falseAlarmRate || 0), 0) /
+              metrics.length
+            : 0,
+        totalSamples: metrics.reduce(
+          (acc, m) => acc + (m.totalSamples || 0),
+          0,
+        ),
       },
       passStatus: this.evaluatePassStatus(metrics),
     };
 
-    this.logger.log(`报警准确率报告生成: algorithm=${algorithmVersion}, dataset=${datasetVersion}, pass=${report.passStatus.passed}`);
+    this.logger.log(
+      `报警准确率报告生成: algorithm=${algorithmVersion}, dataset=${datasetVersion}, pass=${report.passStatus.passed}`,
+    );
     return report;
   }
 
   /**
    * 评估是否通过验收阈值
    */
-  private evaluatePassStatus(metrics: AlarmAccuracyMetricsDto[]): { passed: boolean; failedTypes: string[]; details: Record<string, string> } {
-    const thresholds: Record<string, { sensitivity: number; specificity: number; falseAlarmRate: number }> = {
-      heart_rate: { sensitivity: 0.90, specificity: 0.95, falseAlarmRate: 0.05 },
-      respiration: { sensitivity: 0.88, specificity: 0.96, falseAlarmRate: 0.04 },
+  private evaluatePassStatus(metrics: AlarmAccuracyMetricsDto[]): {
+    passed: boolean;
+    failedTypes: string[];
+    details: Record<string, string>;
+  } {
+    const thresholds: Record<
+      string,
+      { sensitivity: number; specificity: number; falseAlarmRate: number }
+    > = {
+      heart_rate: { sensitivity: 0.9, specificity: 0.95, falseAlarmRate: 0.05 },
+      respiration: {
+        sensitivity: 0.88,
+        specificity: 0.96,
+        falseAlarmRate: 0.04,
+      },
       bed_exit: { sensitivity: 0.95, specificity: 0.98, falseAlarmRate: 0.02 },
       movement: { sensitivity: 0.85, specificity: 0.93, falseAlarmRate: 0.07 },
     };
@@ -169,13 +226,19 @@ export class AlarmAccuracyService {
 
       const issues: string[] = [];
       if ((metric.sensitivity || 0) < threshold.sensitivity) {
-        issues.push(`灵敏度 ${((metric.sensitivity || 0) * 100).toFixed(1)}% < 阈值 ${(threshold.sensitivity * 100).toFixed(1)}%`);
+        issues.push(
+          `灵敏度 ${((metric.sensitivity || 0) * 100).toFixed(1)}% < 阈值 ${(threshold.sensitivity * 100).toFixed(1)}%`,
+        );
       }
       if ((metric.specificity || 0) < threshold.specificity) {
-        issues.push(`特异度 ${((metric.specificity || 0) * 100).toFixed(1)}% < 阈值 ${(threshold.specificity * 100).toFixed(1)}%`);
+        issues.push(
+          `特异度 ${((metric.specificity || 0) * 100).toFixed(1)}% < 阈值 ${(threshold.specificity * 100).toFixed(1)}%`,
+        );
       }
       if ((metric.falseAlarmRate || 0) > threshold.falseAlarmRate) {
-        issues.push(`误报率 ${((metric.falseAlarmRate || 0) * 100).toFixed(1)}% > 阈值 ${(threshold.falseAlarmRate * 100).toFixed(1)}%`);
+        issues.push(
+          `误报率 ${((metric.falseAlarmRate || 0) * 100).toFixed(1)}% > 阈值 ${(threshold.falseAlarmRate * 100).toFixed(1)}%`,
+        );
       }
 
       if (issues.length > 0) {

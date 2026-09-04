@@ -47,13 +47,20 @@ export class SemanticChunkerService {
     const maxSize = options?.maxSize || this.MAX_CHUNK_SIZE;
     const overlap = options?.overlap || this.CHUNK_OVERLAP;
 
-    this.logger.debug(`语义分块开始: documentLength=${document.length}, targetSize=${targetSize}`);
+    this.logger.debug(
+      `语义分块开始: documentLength=${document.length}, targetSize=${targetSize}`,
+    );
 
     // 1. 按结构初步分割（标题、段落、列表）
     const segments = this.structuralSplit(document);
 
     // 2. 基于语义边界合并/分割
-    const semanticChunks = this.semanticMerge(segments, targetSize, minSize, maxSize);
+    const semanticChunks = this.semanticMerge(
+      segments,
+      targetSize,
+      minSize,
+      maxSize,
+    );
 
     // 3. 添加重叠
     const chunksWithOverlap = this.addOverlap(semanticChunks, overlap);
@@ -150,7 +157,12 @@ export class SemanticChunkerService {
   /**
    * 基于语义边界合并段落
    */
-  private semanticMerge(segments: DocumentSegment[], targetSize: number, minSize: number, maxSize: number): SemanticChunk[] {
+  private semanticMerge(
+    segments: DocumentSegment[],
+    targetSize: number,
+    minSize: number,
+    maxSize: number,
+  ): SemanticChunk[] {
     const chunks: SemanticChunk[] = [];
     let currentChunk: SemanticChunk | null = null;
 
@@ -168,7 +180,8 @@ export class SemanticChunkerService {
       }
 
       // 计算合并后的大小
-      const mergedSize = currentChunk.content.length + segment.content.length + 2; // +2 for newline
+      const mergedSize =
+        currentChunk.content.length + segment.content.length + 2; // +2 for newline
 
       // 如果当前块已经足够大，保存并创建新块
       if (currentChunk.content.length >= targetSize) {
@@ -184,7 +197,10 @@ export class SemanticChunkerService {
       }
 
       // 检查语义相似度（简化实现：基于标题/章节是否相同）
-      const semanticallyRelated = this.checkSemanticRelation(currentChunk, segment);
+      const semanticallyRelated = this.checkSemanticRelation(
+        currentChunk,
+        segment,
+      );
 
       // 如果语义相关且合并后不超过最大大小，则合并
       if (semanticallyRelated && mergedSize <= maxSize) {
@@ -195,7 +211,11 @@ export class SemanticChunkerService {
         chunks.push(currentChunk);
         if (segment.content.length > maxSize) {
           // 分割超大段落
-          const subChunks = this.splitLargeSegment(segment, targetSize, maxSize);
+          const subChunks = this.splitLargeSegment(
+            segment,
+            targetSize,
+            maxSize,
+          );
           chunks.push(...subChunks);
           currentChunk = null;
         } else {
@@ -232,7 +252,10 @@ export class SemanticChunkerService {
   /**
    * 检查两个段落是否语义相关
    */
-  private checkSemanticRelation(chunk: SemanticChunk, segment: DocumentSegment): boolean {
+  private checkSemanticRelation(
+    chunk: SemanticChunk,
+    segment: DocumentSegment,
+  ): boolean {
     // 相同标题/章节视为相关
     if (chunk.heading && segment.heading && chunk.heading === segment.heading) {
       return true;
@@ -250,14 +273,21 @@ export class SemanticChunkerService {
   /**
    * 分割超大段落
    */
-  private splitLargeSegment(segment: DocumentSegment, targetSize: number, maxSize: number): SemanticChunk[] {
+  private splitLargeSegment(
+    segment: DocumentSegment,
+    targetSize: number,
+    maxSize: number,
+  ): SemanticChunk[] {
     const chunks: SemanticChunk[] = [];
     const sentences = segment.content.split(/(?<=[。！？.!?])\s*/);
     let currentContent = '';
     let currentStart = segment.startPosition;
 
     for (const sentence of sentences) {
-      if (currentContent.length + sentence.length > targetSize && currentContent.length > 0) {
+      if (
+        currentContent.length + sentence.length > targetSize &&
+        currentContent.length > 0
+      ) {
         chunks.push({
           content: currentContent,
           heading: segment.heading,
@@ -288,14 +318,18 @@ export class SemanticChunkerService {
   /**
    * 合并过小的块
    */
-  private mergeSmallChunks(chunks: SemanticChunk[], minSize: number, maxSize: number): SemanticChunk[] {
+  private mergeSmallChunks(
+    chunks: SemanticChunk[],
+    minSize: number,
+    maxSize: number,
+  ): SemanticChunk[] {
     if (chunks.length <= 1) return chunks;
 
     const result: SemanticChunk[] = [];
     let i = 0;
 
     while (i < chunks.length) {
-      let current = { ...chunks[i] };
+      const current = { ...chunks[i] };
 
       // 如果当前块太小，尝试合并下一个
       while (current.content.length < minSize && i + 1 < chunks.length) {
@@ -319,7 +353,10 @@ export class SemanticChunkerService {
   /**
    * 为分块添加重叠
    */
-  private addOverlap(chunks: SemanticChunk[], overlapSize: number): SemanticChunk[] {
+  private addOverlap(
+    chunks: SemanticChunk[],
+    overlapSize: number,
+  ): SemanticChunk[] {
     if (chunks.length <= 1 || overlapSize <= 0) return chunks;
 
     return chunks.map((chunk, index) => {

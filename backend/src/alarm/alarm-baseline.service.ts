@@ -26,11 +26,11 @@ export class AlarmBaselineService {
         alarmType: 'heart_rate',
         version: '1.0.0',
         thresholds: {
-          sensitivity: 0.90,
+          sensitivity: 0.9,
           specificity: 0.95,
           precision: 0.85,
           falseAlarmRate: 0.05,
-          missRate: 0.10,
+          missRate: 0.1,
           f1Score: 0.87,
         },
         edgeLatencyMs: 2000,
@@ -76,7 +76,7 @@ export class AlarmBaselineService {
         thresholds: {
           sensitivity: 0.85,
           specificity: 0.93,
-          precision: 0.80,
+          precision: 0.8,
           falseAlarmRate: 0.07,
           missRate: 0.15,
           f1Score: 0.82,
@@ -114,11 +114,23 @@ export class AlarmBaselineService {
    */
   validateAgainstBaseline(
     alarmType: string,
-    metrics: { sensitivity?: number; specificity?: number; precision?: number; falseAlarmRate?: number; missRate?: number; f1Score?: number },
+    metrics: {
+      sensitivity?: number;
+      specificity?: number;
+      precision?: number;
+      falseAlarmRate?: number;
+      missRate?: number;
+      f1Score?: number;
+    },
   ): BaselineValidationResult {
     const baseline = this.baselines.get(alarmType);
     if (!baseline) {
-      return { passed: false, alarmType, errors: [`未找到报警类型 ${alarmType} 的基线配置`], checks: [] };
+      return {
+        passed: false,
+        alarmType,
+        errors: [`未找到报警类型 ${alarmType} 的基线配置`],
+        checks: [],
+      };
     }
 
     const checks: BaselineCheck[] = [];
@@ -127,29 +139,62 @@ export class AlarmBaselineService {
     // 灵敏度检查
     if (metrics.sensitivity !== undefined) {
       const passed = metrics.sensitivity >= baseline.thresholds.sensitivity;
-      checks.push({ metric: 'sensitivity', value: metrics.sensitivity, threshold: baseline.thresholds.sensitivity, passed });
-      if (!passed) errors.push(`灵敏度 ${(metrics.sensitivity * 100).toFixed(1)}% 低于基线 ${(baseline.thresholds.sensitivity * 100).toFixed(1)}%`);
+      checks.push({
+        metric: 'sensitivity',
+        value: metrics.sensitivity,
+        threshold: baseline.thresholds.sensitivity,
+        passed,
+      });
+      if (!passed)
+        errors.push(
+          `灵敏度 ${(metrics.sensitivity * 100).toFixed(1)}% 低于基线 ${(baseline.thresholds.sensitivity * 100).toFixed(1)}%`,
+        );
     }
 
     // 特异度检查
     if (metrics.specificity !== undefined) {
       const passed = metrics.specificity >= baseline.thresholds.specificity;
-      checks.push({ metric: 'specificity', value: metrics.specificity, threshold: baseline.thresholds.specificity, passed });
-      if (!passed) errors.push(`特异度 ${(metrics.specificity * 100).toFixed(1)}% 低于基线 ${(baseline.thresholds.specificity * 100).toFixed(1)}%`);
+      checks.push({
+        metric: 'specificity',
+        value: metrics.specificity,
+        threshold: baseline.thresholds.specificity,
+        passed,
+      });
+      if (!passed)
+        errors.push(
+          `特异度 ${(metrics.specificity * 100).toFixed(1)}% 低于基线 ${(baseline.thresholds.specificity * 100).toFixed(1)}%`,
+        );
     }
 
     // 误报率检查
     if (metrics.falseAlarmRate !== undefined) {
-      const passed = metrics.falseAlarmRate <= baseline.thresholds.falseAlarmRate;
-      checks.push({ metric: 'falseAlarmRate', value: metrics.falseAlarmRate, threshold: baseline.thresholds.falseAlarmRate, passed });
-      if (!passed) errors.push(`误报率 ${(metrics.falseAlarmRate * 100).toFixed(1)}% 高于基线 ${(baseline.thresholds.falseAlarmRate * 100).toFixed(1)}%`);
+      const passed =
+        metrics.falseAlarmRate <= baseline.thresholds.falseAlarmRate;
+      checks.push({
+        metric: 'falseAlarmRate',
+        value: metrics.falseAlarmRate,
+        threshold: baseline.thresholds.falseAlarmRate,
+        passed,
+      });
+      if (!passed)
+        errors.push(
+          `误报率 ${(metrics.falseAlarmRate * 100).toFixed(1)}% 高于基线 ${(baseline.thresholds.falseAlarmRate * 100).toFixed(1)}%`,
+        );
     }
 
     // 漏报率检查
     if (metrics.missRate !== undefined) {
       const passed = metrics.missRate <= baseline.thresholds.missRate;
-      checks.push({ metric: 'missRate', value: metrics.missRate, threshold: baseline.thresholds.missRate, passed });
-      if (!passed) errors.push(`漏报率 ${(metrics.missRate * 100).toFixed(1)}% 高于基线 ${(baseline.thresholds.missRate * 100).toFixed(1)}%`);
+      checks.push({
+        metric: 'missRate',
+        value: metrics.missRate,
+        threshold: baseline.thresholds.missRate,
+        passed,
+      });
+      if (!passed)
+        errors.push(
+          `漏报率 ${(metrics.missRate * 100).toFixed(1)}% 高于基线 ${(baseline.thresholds.missRate * 100).toFixed(1)}%`,
+        );
     }
 
     return {
@@ -173,7 +218,12 @@ export class AlarmBaselineService {
   ): DegradationRiskResult {
     const baseline = this.baselines.get(alarmType);
     if (!baseline) {
-      return { hasRisk: true, alarmType, reason: '未找到基线配置', details: [] };
+      return {
+        hasRisk: true,
+        alarmType,
+        reason: '未找到基线配置',
+        details: [],
+      };
     }
 
     const details: DegradationDetail[] = [];
@@ -185,8 +235,15 @@ export class AlarmBaselineService {
 
       // 对于灵敏度、特异度、精确率、F1，值越低越差
       // 对于误报率、漏报率，值越高越差
-      const higherIsBetter = ['sensitivity', 'specificity', 'precision', 'f1Score'].includes(metric);
-      const delta = higherIsBetter ? newValue - baselineValue : baselineValue - newValue;
+      const higherIsBetter = [
+        'sensitivity',
+        'specificity',
+        'precision',
+        'f1Score',
+      ].includes(metric);
+      const delta = higherIsBetter
+        ? newValue - baselineValue
+        : baselineValue - newValue;
 
       if (delta < -degradationThreshold) {
         hasRisk = true;
@@ -195,13 +252,19 @@ export class AlarmBaselineService {
           baselineValue,
           newValue,
           delta,
-          severity: Math.abs(delta) > degradationThreshold * 2 ? 'high' : 'medium',
+          severity:
+            Math.abs(delta) > degradationThreshold * 2 ? 'high' : 'medium',
           description: `${metric} 退化 ${Math.abs(delta * 100).toFixed(1)}%`,
         });
       }
     }
 
-    return { hasRisk, alarmType, reason: hasRisk ? '检测到指标退化' : '无退化风险', details };
+    return {
+      hasRisk,
+      alarmType,
+      reason: hasRisk ? '检测到指标退化' : '无退化风险',
+      details,
+    };
   }
 
   /**

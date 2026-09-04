@@ -30,7 +30,9 @@ export class DataSubjectRequestService {
    * @param request 请求数据
    * @returns 创建的请求
    */
-  async createRequest(request: CreateDataSubjectRequest): Promise<DataSubjectRequest> {
+  async createRequest(
+    request: CreateDataSubjectRequest,
+  ): Promise<DataSubjectRequest> {
     const requestId = `dsr-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
     const dsr: DataSubjectRequest = {
@@ -42,7 +44,9 @@ export class DataSubjectRequestService {
       dataCategories: request.dataCategories || ['all'],
       reason: request.reason,
       createdAt: new Date().toISOString(),
-      deadline: new Date(Date.now() + this.REQUEST_TIMEOUT_HOURS * 60 * 60 * 1000).toISOString(),
+      deadline: new Date(
+        Date.now() + this.REQUEST_TIMEOUT_HOURS * 60 * 60 * 1000,
+      ).toISOString(),
       processedAt: null,
       completedAt: null,
       result: null,
@@ -60,14 +64,22 @@ export class DataSubjectRequestService {
       operatorId: request.userId,
       tenantId: request.tenantId,
       result: 'success',
-      metadata: { requestId, type: request.type, dataCategories: request.dataCategories },
+      metadata: {
+        requestId,
+        type: request.type,
+        dataCategories: request.dataCategories,
+      },
     });
 
-    this.logger.log(`数据主体请求创建: ${requestId}, type=${request.type}, user=${request.userId}`);
+    this.logger.log(
+      `数据主体请求创建: ${requestId}, type=${request.type}, user=${request.userId}`,
+    );
 
     // 异步处理请求
     this.processRequest(dsr).catch((err) => {
-      this.logger.error(`数据主体请求处理异常: ${requestId}, error=${err.message}`);
+      this.logger.error(
+        `数据主体请求处理异常: ${requestId}, error=${err.message}`,
+      );
     });
 
     return dsr;
@@ -104,32 +116,42 @@ export class DataSubjectRequestService {
       request.status = 'completed';
       request.completedAt = new Date().toISOString();
 
-      this.logger.log(`数据主体请求完成: ${request.requestId}, type=${request.type}`);
+      this.logger.log(
+        `数据主体请求完成: ${request.requestId}, type=${request.type}`,
+      );
     } catch (error) {
       request.status = 'failed';
       request.error = error.message;
       request.completedAt = new Date().toISOString();
-      this.logger.error(`数据主体请求失败: ${request.requestId}, error=${error.message}`);
+      this.logger.error(
+        `数据主体请求失败: ${request.requestId}, error=${error.message}`,
+      );
     }
 
     // 记录审计
-    await this.auditRecorder.record({
-      eventType: 'data_subject_request',
-      action: `complete_${request.type}`,
-      resourceType: 'user_data',
-      resourceId: request.userId,
-      operatorId: 'system',
-      tenantId: request.tenantId,
-      result: request.status === 'completed' ? 'success' : 'failed',
-      metadata: { requestId: request.requestId, error: request.error },
-    }).catch(() => {});
+    await this.auditRecorder
+      .record({
+        eventType: 'data_subject_request',
+        action: `complete_${request.type}`,
+        resourceType: 'user_data',
+        resourceId: request.userId,
+        operatorId: 'system',
+        tenantId: request.tenantId,
+        result: request.status === 'completed' ? 'success' : 'failed',
+        metadata: { requestId: request.requestId, error: request.error },
+      })
+      .catch(() => {});
   }
 
   /**
    * 处理数据导出请求
    */
-  private async processExportRequest(request: DataSubjectRequest): Promise<DataSubjectRequestResult> {
-    this.logger.debug(`处理数据导出: ${request.requestId}, user=${request.userId}`);
+  private async processExportRequest(
+    request: DataSubjectRequest,
+  ): Promise<DataSubjectRequestResult> {
+    this.logger.debug(
+      `处理数据导出: ${request.requestId}, user=${request.userId}`,
+    );
 
     // 实际应从数据库导出用户所有数据
     // const userData = await this.collectUserData(request.userId, request.dataCategories);
@@ -138,10 +160,10 @@ export class DataSubjectRequestService {
       exportTime: new Date().toISOString(),
       userId: request.userId,
       dataCategories: request.dataCategories,
-      profile: { /* 用户资料 */ },
-      sleepData: { /* 睡眠数据 */ },
-      deviceData: { /* 设备数据 */ },
-      alarmData: { /* 报警数据 */ },
+      profile: {/* 用户资料 */},
+      sleepData: {/* 睡眠数据 */},
+      deviceData: {/* 设备数据 */},
+      alarmData: {/* 报警数据 */},
     };
 
     return {
@@ -155,8 +177,12 @@ export class DataSubjectRequestService {
   /**
    * 处理数据删除请求
    */
-  private async processDeleteRequest(request: DataSubjectRequest): Promise<DataSubjectRequestResult> {
-    this.logger.debug(`处理数据删除: ${request.requestId}, user=${request.userId}`);
+  private async processDeleteRequest(
+    request: DataSubjectRequest,
+  ): Promise<DataSubjectRequestResult> {
+    this.logger.debug(
+      `处理数据删除: ${request.requestId}, user=${request.userId}`,
+    );
 
     // 实际应执行数据删除流程
     // 1. 创建数据备份（用于回滚）
@@ -175,8 +201,12 @@ export class DataSubjectRequestService {
   /**
    * 处理数据访问请求
    */
-  private async processAccessRequest(request: DataSubjectRequest): Promise<DataSubjectRequestResult> {
-    this.logger.debug(`处理数据访问: ${request.requestId}, user=${request.userId}`);
+  private async processAccessRequest(
+    request: DataSubjectRequest,
+  ): Promise<DataSubjectRequestResult> {
+    this.logger.debug(
+      `处理数据访问: ${request.requestId}, user=${request.userId}`,
+    );
 
     return {
       accessUrl: `https://example.com/access/${request.requestId}`,
@@ -188,8 +218,12 @@ export class DataSubjectRequestService {
   /**
    * 处理数据更正请求
    */
-  private async processRectificationRequest(request: DataSubjectRequest): Promise<DataSubjectRequestResult> {
-    this.logger.debug(`处理数据更正: ${request.requestId}, user=${request.userId}`);
+  private async processRectificationRequest(
+    request: DataSubjectRequest,
+  ): Promise<DataSubjectRequestResult> {
+    this.logger.debug(
+      `处理数据更正: ${request.requestId}, user=${request.userId}`,
+    );
 
     return {
       rectifiedFields: [],
@@ -200,8 +234,12 @@ export class DataSubjectRequestService {
   /**
    * 处理授权撤回请求
    */
-  private async processWithdrawConsentRequest(request: DataSubjectRequest): Promise<DataSubjectRequestResult> {
-    this.logger.debug(`处理授权撤回: ${request.requestId}, user=${request.userId}`);
+  private async processWithdrawConsentRequest(
+    request: DataSubjectRequest,
+  ): Promise<DataSubjectRequestResult> {
+    this.logger.debug(
+      `处理授权撤回: ${request.requestId}, user=${request.userId}`,
+    );
 
     // 实际应：
     // 1. 更新用户授权状态
@@ -225,12 +263,20 @@ export class DataSubjectRequestService {
   /**
    * 列出用户的请求
    */
-  listUserRequests(userId: string, type?: DataSubjectRequestType): DataSubjectRequest[] {
-    let requests = Array.from(this.requests.values()).filter((r) => r.userId === userId);
+  listUserRequests(
+    userId: string,
+    type?: DataSubjectRequestType,
+  ): DataSubjectRequest[] {
+    let requests = Array.from(this.requests.values()).filter(
+      (r) => r.userId === userId,
+    );
     if (type) {
       requests = requests.filter((r) => r.type === type);
     }
-    return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return requests.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
   }
 
   /**
@@ -253,12 +299,19 @@ export class DataSubjectRequestService {
   /**
    * 检查数据保留期限
    */
-  checkDataRetention(dataType: string, createdAt: string): { expired: boolean; daysUntilExpiry: number; retentionDays: number } {
+  checkDataRetention(
+    dataType: string,
+    createdAt: string,
+  ): { expired: boolean; daysUntilExpiry: number; retentionDays: number } {
     const retentionDays = this.getDataRetentionDays(dataType);
     const createdDate = new Date(createdAt);
-    const expiryDate = new Date(createdDate.getTime() + retentionDays * 24 * 60 * 60 * 1000);
+    const expiryDate = new Date(
+      createdDate.getTime() + retentionDays * 24 * 60 * 60 * 1000,
+    );
     const now = new Date();
-    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.ceil(
+      (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     return {
       expired: daysUntilExpiry <= 0,
@@ -286,7 +339,8 @@ export class DataSubjectRequestService {
 /**
  * 数据主体请求类型
  */
-export type DataSubjectRequestType = 'export' | 'delete' | 'access' | 'rectification' | 'withdraw_consent';
+export type DataSubjectRequestType =
+  'export' | 'delete' | 'access' | 'rectification' | 'withdraw_consent';
 
 /**
  * 创建数据主体请求

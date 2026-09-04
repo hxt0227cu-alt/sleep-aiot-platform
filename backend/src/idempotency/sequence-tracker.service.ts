@@ -35,22 +35,28 @@ export class SequenceTrackerService {
    * @param sequence 序列号
    * @param timestamp 上报时间
    */
-  async recordSequence(deviceId: string, sequence: number, timestamp?: number): Promise<SequenceRecordResult> {
+  async recordSequence(
+    deviceId: string,
+    sequence: number,
+    timestamp?: number,
+  ): Promise<SequenceRecordResult> {
     const stateKey = `${this.STATE_PREFIX}${deviceId}`;
     const now = timestamp || Date.now();
 
     // 获取当前状态
     const stateStr = await this.redis.get(stateKey);
-    const state: DeviceSequenceState = stateStr ? JSON.parse(stateStr) : {
-      deviceId,
-      lastSequence: -1,
-      lastTimestamp: 0,
-      totalReceived: 0,
-      totalDuplicate: 0,
-      totalOutOfOrder: 0,
-      totalMissing: 0,
-      gaps: [],
-    };
+    const state: DeviceSequenceState = stateStr
+      ? JSON.parse(stateStr)
+      : {
+          deviceId,
+          lastSequence: -1,
+          lastTimestamp: 0,
+          totalReceived: 0,
+          totalDuplicate: 0,
+          totalOutOfOrder: 0,
+          totalMissing: 0,
+          gaps: [],
+        };
 
     const result: SequenceRecordResult = {
       sequence,
@@ -79,7 +85,10 @@ export class SequenceTrackerService {
     }
 
     // 乱序（序列号小于上次，但不是回绕）
-    if (sequence < state.lastSequence && sequence > state.lastSequence - 32768) {
+    if (
+      sequence < state.lastSequence &&
+      sequence > state.lastSequence - 32768
+    ) {
       state.totalOutOfOrder++;
       result.isOutOfOrder = true;
       // 乱序数据仍记录，但不更新 lastSequence
@@ -150,7 +159,10 @@ export class SequenceTrackerService {
   /**
    * 标记丢失序列号已补传
    */
-  async markMissingRecovered(deviceId: string, sequences: number[]): Promise<void> {
+  async markMissingRecovered(
+    deviceId: string,
+    sequences: number[],
+  ): Promise<void> {
     const missingKey = `${this.MISSING_PREFIX}${deviceId}`;
     const currentMissing = await this.getMissingSequences(deviceId);
     const recoveredSet = new Set(sequences);
@@ -159,10 +171,16 @@ export class SequenceTrackerService {
     if (remaining.length === 0) {
       await this.redis.del(missingKey);
     } else {
-      await this.redis.set(missingKey, JSON.stringify(remaining), this.MISSING_TTL);
+      await this.redis.set(
+        missingKey,
+        JSON.stringify(remaining),
+        this.MISSING_TTL,
+      );
     }
 
-    this.logger.debug(`丢失序列号补传: device=${deviceId}, recovered=${sequences.length}, remaining=${remaining.length}`);
+    this.logger.debug(
+      `丢失序列号补传: device=${deviceId}, recovered=${sequences.length}, remaining=${remaining.length}`,
+    );
   }
 
   /**
@@ -170,8 +188,13 @@ export class SequenceTrackerService {
    *
    * 向设备发送补传指令，请求丢失的序列号数据。
    */
-  async triggerBackfill(deviceId: string, missingSequences: number[]): Promise<BackfillRequest> {
-    this.logger.log(`触发数据补传: device=${deviceId}, missing=${missingSequences.length}`);
+  async triggerBackfill(
+    deviceId: string,
+    missingSequences: number[],
+  ): Promise<BackfillRequest> {
+    this.logger.log(
+      `触发数据补传: device=${deviceId}, missing=${missingSequences.length}`,
+    );
 
     const request: BackfillRequest = {
       deviceId,
@@ -205,25 +228,43 @@ export class SequenceTrackerService {
       totalOutOfOrder: state.totalOutOfOrder,
       totalMissing: state.totalMissing,
       currentMissingCount: missing.length,
-      duplicateRate: state.totalReceived > 0 ? state.totalDuplicate / state.totalReceived : 0,
-      outOfOrderRate: state.totalReceived > 0 ? state.totalOutOfOrder / state.totalReceived : 0,
+      duplicateRate:
+        state.totalReceived > 0
+          ? state.totalDuplicate / state.totalReceived
+          : 0,
+      outOfOrderRate:
+        state.totalReceived > 0
+          ? state.totalOutOfOrder / state.totalReceived
+          : 0,
     };
   }
 
   /**
    * 记录丢失序列号
    */
-  private async recordMissingSequences(deviceId: string, sequences: number[]): Promise<void> {
+  private async recordMissingSequences(
+    deviceId: string,
+    sequences: number[],
+  ): Promise<void> {
     const missingKey = `${this.MISSING_PREFIX}${deviceId}`;
     const current = await this.getMissingSequences(deviceId);
-    const updated = [...new Set([...current, ...sequences])].sort((a, b) => a - b);
-    await this.redis.set(missingKey, JSON.stringify(updated.slice(-this.MAX_MISSING_RECORDS)), this.MISSING_TTL);
+    const updated = [...new Set([...current, ...sequences])].sort(
+      (a, b) => a - b,
+    );
+    await this.redis.set(
+      missingKey,
+      JSON.stringify(updated.slice(-this.MAX_MISSING_RECORDS)),
+      this.MISSING_TTL,
+    );
   }
 
   /**
    * 保存状态
    */
-  private async saveState(key: string, state: DeviceSequenceState): Promise<void> {
+  private async saveState(
+    key: string,
+    state: DeviceSequenceState,
+  ): Promise<void> {
     await this.redis.set(key, JSON.stringify(state), this.STATE_TTL);
   }
 }

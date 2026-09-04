@@ -110,12 +110,29 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Test, package, and verify formal event-time evidence
+      - name: Test and package
         working-directory: services/flink-telemetry-job
+        run: mvn -B clean verify
+      - name: Run local event-time smoke (Flink + Kafka + ClickHouse)
+        env:
+          EVIDENCE_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+          EVIDENCE_OUTPUT: ${{ runner.temp }}/flink-event-time.json
+          CLICKHOUSE_PASSWORD: replace-with-random-local-password
         run: |
-          mvn -B clean verify
-          node --check ../../platform/load-tests/flink-event-time-smoke.mjs
-          node ../../platform/load-tests/verify-flink-event-time-evidence.mjs
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            up -d --build kafka clickhouse flink-jobmanager flink-taskmanager
+          node platform/load-tests/flink-event-time-smoke.mjs
+      - name: Stop event-time test services
+        if: always()
+        run: |
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            down -v
 
   data-warehouse:
     runs-on: ubuntu-latest
@@ -146,22 +163,43 @@ jobs:
             --user sleep \
             --password replace-with-random-local-password \
             --query "INSERT INTO raw.device_telemetry (event_id, tenant_id, device_id, schema_version, occurred_at, received_at, sequence, heart_rate, breathing_rate, body_movement, sleep_state, confidence) VALUES ('00000000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111','shared-device',1,now64(3)-INTERVAL 5 HOUR,now64(3),1,60,12,0.1,'deep',0.9),('00000000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111','shared-device',1,now64(3)-INTERVAL 5 HOUR,now64(3),1,60,12,0.1,'deep',0.9),('00000000-0000-4000-8000-000000000002','11111111-1111-4111-8111-111111111111','shared-device',1,now64(3)-INTERVAL 4 HOUR,now64(3),2,70,14,0.2,'awake',0.9),('00000000-0000-4000-8000-000000000003','11111111-1111-4111-8111-111111111111','shared-device',1,now64(3)-INTERVAL 3 HOUR,now64(3),3,80,16,0.3,'rem',0.9),('00000000-0000-4000-8000-000000000004','22222222-2222-4222-8222-222222222222','shared-device',1,now64(3)-INTERVAL 2 HOUR,now64(3),4,90,18,0.1,'deep',0.9),('00000000-0000-4000-8000-000000000005','22222222-2222-4222-8222-222222222222','shared-device',1,now64(3)-INTERVAL 1 HOUR,now64(3),5,100,20,0.2,'deep',0.9)"
-      - name: Build full and incremental warehouse layers
+      - name: Build full-refresh layer and capture evidence
+        run: |
+          mkdir -p platform/data/dbt/target platform/data/dbt/logs
+          chmod -R 777 platform/data/dbt/target platform/data/dbt/logs
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            run --rm --build \
+            -v "$PWD/platform/data/dbt/target:/app/target" \
+            -v "$PWD/platform/data/dbt/logs:/app/logs" \
+            data-jobs build --full-refresh --project-dir /app --profiles-dir /app --target local
+          CLICKHOUSE_PASSWORD=replace-with-random-local-password \
+          EVIDENCE_OUTPUT_DIR="$RUNNER_TEMP/dbt-evidence" \
+          node platform/load-tests/capture-dbt-warehouse-evidence.mjs \
+            --run-id ci-full-refresh --artifact-dir platform/data/dbt \
+            --expected-mode full-refresh --image-id sleep-data-jobs:local --adapter-version 1.10.1
+      - name: Build incremental layer and capture evidence
         run: |
           docker compose \
             --env-file platform/local/.env.example \
             -f platform/local/docker-compose.enterprise.yml \
             --profile data-platform \
-            run --rm --build data-jobs build --full-refresh --project-dir /app --profiles-dir /app --target local
-          docker compose \
-            --env-file platform/local/.env.example \
-            -f platform/local/docker-compose.enterprise.yml \
-            --profile data-platform \
-            run --rm data-jobs build --project-dir /app --profiles-dir /app --target local
-      - name: Verify formal local warehouse evidence
+            run --rm \
+            -v "$PWD/platform/data/dbt/target:/app/target" \
+            -v "$PWD/platform/data/dbt/logs:/app/logs" \
+            data-jobs build --project-dir /app --profiles-dir /app --target local
+          CLICKHOUSE_PASSWORD=replace-with-random-local-password \
+          EVIDENCE_OUTPUT_DIR="$RUNNER_TEMP/dbt-evidence" \
+          node platform/load-tests/capture-dbt-warehouse-evidence.mjs \
+            --run-id ci-incremental-01 --artifact-dir platform/data/dbt \
+            --expected-mode incremental --image-id sleep-data-jobs:local --adapter-version 1.10.1
+      - name: Verify local warehouse evidence
+        env:
+          EVIDENCE_OUTPUT_DIR: ${{ runner.temp }}/dbt-evidence
         run: |
-          node --check platform/load-tests/capture-dbt-warehouse-evidence.mjs
-          node platform/load-tests/verify-dbt-warehouse-evidence.mjs
+          node platform/load-tests/verify-dbt-warehouse-evidence.mjs --ci
       - name: Verify tenant-scoped Feature Service and Agent integration
         env:
           FEATURE_SERVICE_TOKEN: replace-with-random-local-service-token
