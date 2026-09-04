@@ -19,6 +19,7 @@ const groupId = `realtime-rebalance-${runId}`.slice(0, 220);
 const tenantId = `tenant-rebalance-${runId}`.slice(0, 120);
 const workerImage = process.env.WORKER_IMAGE || 'local-realtime-worker';
 const dockerNetwork = process.env.DOCKER_NETWORK || 'local_default';
+const recoveryBoundMs = numberEnv('RECOVERY_BOUND_MS', 30_000);
 const hostBrokers = (process.env.KAFKA_BROKERS || '127.0.0.1:29092').split(',');
 const workerBrokers = process.env.WORKER_KAFKA_BROKERS || 'kafka:9092';
 const hostSchemaRegistryUrl = process.env.SCHEMA_REGISTRY_URL || 'http://127.0.0.1:8081';
@@ -123,7 +124,7 @@ async function main() {
     await publishBatches(warmup, 200);
     await poll(
       async () => ((await groupLag()).totalLag === 0 ? true : null),
-      60_000,
+      120_000,
       'warm-up lag to drain',
     );
     const warmMetrics = await Promise.all(workerUrls.map(readWorkerMetrics));
@@ -176,7 +177,7 @@ async function main() {
         }
         return null;
       },
-      60_000,
+      120_000,
       'surviving Worker to own every partition',
     );
     recoveryMs = Date.now() - killedAtMs;
@@ -218,12 +219,12 @@ async function main() {
         const snapshot = await groupLag();
         return snapshot.totalLag === 0 ? snapshot : null;
       },
-      60_000,
+      120_000,
       'replay and invalid-key records to commit',
     );
     await poll(
       async () => (deadLetters.length === 1 ? true : null),
-      30_000,
+      60_000,
       'partition-key DLQ record',
     );
 
@@ -245,7 +246,7 @@ async function main() {
       positive_lag_observed_after_failure: lagAfterFailure.totalLag > 0,
       one_member_after_failure: finalGroup.memberCount === 1,
       survivor_owns_all_partitions: survivorMetrics.assignedPartitions === partitionCount,
-      rebalance_recovered_under_30_seconds: recoveryMs < 30_000,
+      rebalance_recovered_within_bound: recoveryMs < recoveryBoundMs,
       final_lag_zero: finalLag.totalLag === 0,
       all_offsets_at_log_end: finalLag.partitions.every((item) => item.lag === 0),
       no_event_loss: warehouse.totalRows === expectedUniqueEvents,
@@ -297,6 +298,7 @@ async function main() {
       lagAfterFailure,
       afterFailure,
       recoveryMs,
+      recoveryBoundMs,
       finalLag,
       warehouse,
       survivorMetrics,

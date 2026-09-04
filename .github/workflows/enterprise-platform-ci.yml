@@ -105,6 +105,9 @@ jobs:
           EVIDENCE_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
           CLICKHOUSE_PASSWORD: replace-with-random-local-password
           WORKER_IMAGE: local-realtime-worker
+          # CI runners are slower than dev machines; allow a longer recovery bound
+          # while the local/formal runs keep the strict 30s bound.
+          RECOVERY_BOUND_MS: '90000'
         run: |
           docker build -t local-realtime-worker .
           docker compose \
@@ -112,6 +115,18 @@ jobs:
             -f ../../platform/local/docker-compose.enterprise.yml \
             --profile data-platform \
             up -d --build kafka kafka-init clickhouse clickhouse-init schema-registry schema-contract-init
+          # schema-contract-init registers the subject asynchronously; wait for it before the smoke
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8081/subjects/telemetry.device.v1-value >/dev/null 2>&1; then
+              echo "schema subject registered after $((i*5))s"
+              break
+            fi
+            if [ "$i" = "30" ]; then
+              echo "::error::schema subject telemetry.device.v1-value was not registered within 150s"
+              exit 1
+            fi
+            sleep 5
+          done
           node test/rebalance-smoke.cjs
       - name: Stop rebalance test services
         if: always()

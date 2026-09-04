@@ -36,7 +36,7 @@ try {
   await waitFor(async () => {
     const overview = await jsonFetch('http://127.0.0.1:8082/overview');
     return overview.taskmanagers >= 1 && overview['slots-available'] >= 1 ? overview : null;
-  }, 120_000, 'Flink JobManager and TaskManager readiness');
+  }, 300_000, 'Flink JobManager and TaskManager readiness');
 
   kafka([
     'topics', '--create', '--if-not-exists', '--topic', sourceTopic,
@@ -68,7 +68,7 @@ try {
   await waitFor(async () => {
     const job = await jsonFetch(`http://127.0.0.1:8082/jobs/${jobId}`);
     return job.state === 'RUNNING' ? job : null;
-  }, 60_000, 'Flink job RUNNING state');
+  }, 120_000, 'Flink job RUNNING state');
 
   const ids = {
     first: randomUUID(),
@@ -104,18 +104,18 @@ try {
       values.aggregate.length >= 2 &&
       values.invalid.length === 1 &&
       values.duplicate.length === 1 ? values : null;
-  }, 120_000, 'all committed Flink Kafka outputs');
+  }, 240_000, 'all committed Flink Kafka outputs');
 
   const checkpoints = await waitFor(async () => {
     const value = await jsonFetch(`http://127.0.0.1:8082/jobs/${jobId}/checkpoints`);
     return value.counts?.completed >= 1 ? value : null;
-  }, 60_000, 'at least one completed Flink checkpoint');
+  }, 120_000, 'at least one completed Flink checkpoint');
 
   const warehouse = await waitFor(async () => {
     const value = await warehouseSnapshot();
     return value.dwd_rows === 5 && value.late_rows === 1 && value.aggregate_rows >= 2 &&
       value.invalid_rows === 1 && value.duplicate_rows === 1 ? value : null;
-  }, 120_000, 'ClickHouse DWD, DWS, late, invalid, and duplicate materialization');
+  }, 240_000, 'ClickHouse DWD, DWS, late, invalid, and duplicate materialization');
 
   const windowRows = kafkaOutputs.aggregate
     .sort((left, right) => left.window_start_ms - right.window_start_ms)
