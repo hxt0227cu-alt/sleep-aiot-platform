@@ -36,8 +36,6 @@ resources:
 ---
 # Reason: control-plane KMS plugin requires upstream root image + hostPath socket; forcing non-root
 # would risk breaking the API server etcd-encryption path. By-design exception (see docs/security.md).
-#trivy:ignore:AVD-KSV-0014
-#trivy:ignore:AVD-KSV-0118
 # KMS 插件部署（DaemonSet，仅控制平面节点）
 apiVersion: apps/v1
 kind: DaemonSet

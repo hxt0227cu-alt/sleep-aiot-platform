@@ -22,29 +22,31 @@ and is verified by CI on every push.
 - **Repeatedly verified**: these scans run on every push to `main` and on every
   pull request touching `services/**`, `platform/**` or the workflow itself.
 
-## By-design exceptions (exempted inline)
+## By-design exceptions (whitelisted in CI)
 
-The following resources carry `#trivy:ignore` comments in the source manifests,
-so the hard gate stays green while every *other* finding still fails the build.
-Removing or weakening an exemption (or adding a new manifest without hardening)
-will fail CI:
+The `security` job's misconfig step emits a JSON report and a follow-up
+assertion step fails the build unless every finding is one of the documented
+by-design pairs below (target file + rule ID). This keeps the gate precise —
+the three resources below are the only allowed exceptions, and any *other*
+finding (e.g. a new manifest that forgets hardening) turns CI red. The
+exceptions are also annotated as comments in the source manifests:
 
 - **External Secrets operator** needs `create/update/patch/delete` on
   `secrets` to synchronize SecretStores into the cluster. Restricting this
   ClusterRole would disable the operator; the correct scope control is
   enforced at the `ClusterSecretStore` level with namespace-scoped
-  `ServiceAccount` bindings. Exempted inline in
-  `platform/k8s/base/external-secrets.yaml` (KSV-0041). The unrelated KSV-0046
+  `ServiceAccount` bindings. Whitelisted in
+  CI (target `platform/k8s/base/external-secrets.yaml` + KSV-0041). The unrelated KSV-0046
   wildcard rule has been narrowed (see checklist).
 - **Sealed Secrets controller** (`secrets-unsealer`) needs cluster-wide
   `secrets` write access by design: it unseals a `SealedSecret` into whichever
-  namespace the resource lives in. Exempted inline in
-  `platform/k8s/base/sealed-secrets-bootstrap.yaml` (KSV-0041).
+  namespace the resource lives in. Whitelisted in CI
+  (target `platform/k8s/base/sealed-secrets-bootstrap.yaml` + KSV-0041).
 - **`kube-system` KMS plugin** (`kms-plugin` DaemonSet) is the control-plane
   etcd-encryption socket peer. It requires a `hostPath` socket and runs the
   upstream Aliyun image as root; forcing non-root would risk breaking the API
-  server's encryption path. Exempted inline in
-  `platform/k8s/base/etcd-encryption-config.yaml` (KSV-0014 / KSV-0118).
+  server's encryption path. Whitelisted in CI
+  (`platform/k8s/base/etcd-encryption-config.yaml` + KSV-0014 / KSV-0118).
 
 **Stateful images** (`postgres`, `clickhouse`, `kafka`, `redis`, `vault`) are
 **not** exempted — they are hardened like everything else:
@@ -154,21 +156,21 @@ suite that runs on a real cluster (staging / ACK validation / kind / k3s):
 kustomize build platform/k8s/overlays/validation
 kustomize build platform/k8s/overlays/alicloud-validation
 
-# 2. Misconfiguration scan (CI security job, hard gate) — the inline
-#    #trivy:ignore exemptions keep the by-design resources green; anything
-#    else fails the build
-trivy fs --scanners misconfig --severity HIGH,CRITICAL --skip-dirs platform/k8s/rendered .
+# 2. Misconfiguration scan (CI security job, hard gate) — the misconfig step
+#    emits a JSON report and the assertion step fails unless every finding is
+#    one of the documented by-design (target, rule) pairs above.
+trivy fs --scanners misconfig --severity HIGH,CRITICAL --format json --output trivy-misconfig.json --skip-dirs platform/k8s/rendered .
 
 # 3. Runtime behaviour on a real cluster (CI k8s-runtime-smoke job, or locally)
 bash platform/k8s/scripts/smoke/run-smoke.sh
 bash platform/k8s/scripts/smoke/run-smoke.sh --trigger-cronjobs
 ```
 
-Because of the inline `#trivy:ignore` exemptions, the `security` job misconfig
-step reports **zero remaining findings** on a clean run; the by-design
-exceptions above are the only resources that carry an exemption. The SARIF
-artifact (`trivy-results.sarif`) still records them for review. See the CI
-`security` job log for the authoritative result on each commit.
+Because of the CI whitelist assertion, the `security` job misconfig gate reports
+**zero unexpected findings** on a clean run; the by-design pairs above are the
+only (target, rule) combinations allowed. The SARIF artifact
+(`trivy-results.sarif`) still records everything at all severities for review.
+See the CI `security` job log for the authoritative result on each commit.
 
 ## Reporting
 
