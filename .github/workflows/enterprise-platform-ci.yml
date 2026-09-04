@@ -122,18 +122,8 @@ jobs:
             -f ../../platform/local/docker-compose.enterprise.yml \
             --profile data-platform \
             run --rm schema-contract-init
-          # Belt-and-suspenders: confirm the subject is queryable before the smoke
-          for i in $(seq 1 12); do
-            if curl -sf http://127.0.0.1:8081/subjects/telemetry.device.v1-value >/dev/null 2>&1; then
-              echo "schema subject registered after $((i*5))s"
-              break
-            fi
-            if [ "$i" = "12" ]; then
-              echo "::error::schema subject telemetry.device.v1-value was not registered within 60s"
-              exit 1
-            fi
-            sleep 5
-          done
+          # The smoke self-bootstraps the subject if it is missing, so it is
+          # deterministic regardless of initializer timing.
           node test/rebalance-smoke.cjs
       - name: Stop rebalance test services
         if: always()

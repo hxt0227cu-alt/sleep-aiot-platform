@@ -1,5 +1,7 @@
 const { createHash, randomUUID } = require('node:crypto');
 const { execFileSync } = require('node:child_process');
+const { readFileSync } = require('node:fs');
+const path = require('node:path');
 const os = require('node:os');
 const {
   Kafka,
@@ -422,17 +424,68 @@ async function publish(messages) {
 }
 
 async function latestSchema() {
-  const response = await fetch(
-    `${hostSchemaRegistryUrl.replace(/\/+$/, '')}/subjects/${encodeURIComponent(schemaSubject)}/versions/latest`,
-    {
+  const base = hostSchemaRegistryUrl.replace(/\/+$/, '');
+  const subjectPath = encodeURIComponent(schemaSubject);
+  let response = await fetch(`${base}/subjects/${subjectPath}/versions/latest`, {
+    headers: { accept: 'application/vnd.schemaregistry.v1+json' },
+    signal: AbortSignal.timeout(5_000),
+  });
+  // Self-bootstrap: if the subject has not been registered yet (the E2E may
+  // run before/without the contract initializer), register the contract schema
+  // directly so the smoke is deterministic in any environment.
+  if (response.status === 404) {
+    const contractPath = resolveContractPath();
+    const schema = JSON.stringify(JSON.parse(readFileSync(contractPath, 'utf8')));
+    const configResponse = await fetch(`${base}/config/${subjectPath}`, {
+      method: 'PUT',
+      headers: {
+        accept: 'application/vnd.schemaregistry.v1+json',
+        'content-type': 'application/vnd.schemaregistry.v1+json',
+      },
+      body: JSON.stringify({ compatibility: 'BACKWARD' }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!configResponse.ok) {
+      throw new Error(`Schema Registry config failed: ${configResponse.status} ${await configResponse.text()}`);
+    }
+    const registerResponse = await fetch(`${base}/subjects/${subjectPath}/versions`, {
+      method: 'POST',
+      headers: {
+        accept: 'application/vnd.schemaregistry.v1+json',
+        'content-type': 'application/vnd.schemaregistry.v1+json',
+      },
+      body: JSON.stringify({ schemaType: 'JSON', schema }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!registerResponse.ok) {
+      throw new Error(`Schema Registry register failed: ${registerResponse.status} ${await registerResponse.text()}`);
+    }
+    response = await fetch(`${base}/subjects/${subjectPath}/versions/latest`, {
       headers: { accept: 'application/vnd.schemaregistry.v1+json' },
       signal: AbortSignal.timeout(5_000),
-    },
-  );
+    });
+  }
   if (!response.ok) {
     throw new Error(`Schema Registry lookup failed: ${response.status} ${await response.text()}`);
   }
   return response.json();
+}
+
+function resolveContractPath() {
+  const candidates = [
+    path.join(__dirname, '..', '..', '..', 'platform', 'data-contracts', 'device-telemetry-received.v1.schema.json'),
+    path.join(process.cwd(), 'platform', 'data-contracts', 'device-telemetry-received.v1.schema.json'),
+    path.join(process.cwd(), '..', '..', 'platform', 'data-contracts', 'device-telemetry-received.v1.schema.json'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      readFileSync(candidate, 'utf8');
+      return candidate;
+    } catch {
+      // try next candidate
+    }
+  }
+  throw new Error('device-telemetry-received.v1.schema.json contract not found under platform/data-contracts');
 }
 
 async function readWorkerMetrics(baseUrl) {
