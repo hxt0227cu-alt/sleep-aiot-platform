@@ -1,0 +1,133 @@
+apiVersion: apps.emqx.io/v2beta1
+kind: EMQX
+metadata:
+  name: emqx
+  namespace: iot
+spec:
+  image: emqx/emqx:5.3.2
+  replicas: 3
+  coreTemplate:
+    spec:
+      replicas: 3
+      volumeClaimTemplates:
+        storageClassName: gp3
+        resources:
+          requests:
+            storage: 20Gi
+      env:
+        - name: EMQX_NAME
+          value: emqx
+        - name: EMQX_CLUSTER__DISCOVERY_STRATEGY
+          value: dns
+        - name: EMQX_CLUSTER__DNS__RECORD_TYPE
+          value: srv
+        - name: EMQX_CLUSTER__DNS__NAME
+          value: emqx-headless.iot.svc.cluster.local
+        - name: EMQX_LISTENERS__TCP__DEFAULT__BIND
+          value: "0.0.0.0:1883"
+        - name: EMQX_LISTENERS__SSL__DEFAULT__BIND
+          value: "0.0.0.0:8883"
+        - name: EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CERTFILE
+          value: /opt/emqx/etc/certs/tls.crt
+        - name: EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__KEYFILE
+          value: /opt/emqx/etc/certs/tls.key
+        - name: EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CACERTFILE
+          value: /opt/emqx/etc/certs/ca.crt
+        - name: EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__VERIFY
+          value: verify_peer
+        - name: EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__FAIL_IF_NO_PEER_CERT
+          value: "true"
+        - name: EMQX_AUTHENTICATION__1__MECHANISM
+          value: password_based
+        - name: EMQX_AUTHENTICATION__1__BACKEND
+          value: postgresql
+        - name: EMQX_AUTHENTICATION__1__DATABASE
+          value: sleep_platform
+        - name: EMQX_AUTHENTICATION__1__USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: emqx-db-secret
+              key: username
+        - name: EMQX_AUTHENTICATION__1__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: emqx-db-secret
+              key: password
+        - name: EMQX_AUTHENTICATION__1__SERVER
+          value: postgres.database.svc.cluster.local:5432
+        - name: EMQX_AUTHORIZATION__NO_MATCH
+          value: deny
+        - name: EMQX_AUTHORIZATION__DENY_ACTION
+          value: disconnect
+        - name: EMQX_MQTT__MAX_PACKET_SIZE
+          value: 1MB
+        - name: EMQX_MQTT__CLIENTID__BUSY_CHECK
+          value: "true"
+        - name: EMQX_RETAINER__BACKEND__STORAGE_TYPE
+          value: disc
+        - name: EMQX_LOG__LEVEL
+          value: warning
+      resources:
+        requests:
+          cpu: 500m
+          memory: 1Gi
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+      readinessProbe:
+        httpGet:
+          path: /status
+          port: 18083
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      livenessProbe:
+        httpGet:
+          path: /status
+          port: 18083
+        initialDelaySeconds: 60
+        periodSeconds: 30
+      volumeMounts:
+        - name: emqx-tls
+          mountPath: /opt/emqx/etc/certs
+          readOnly: true
+      volumes:
+        - name: emqx-tls
+          secret:
+            secretName: emqx-tls
+  replicantTemplate:
+    spec:
+      replicas: 0
+  dashboardServiceTemplate:
+    spec:
+      type: ClusterIP
+      ports:
+        - name: dashboard
+          port: 18083
+          targetPort: 18083
+  listenersServiceTemplate:
+    spec:
+      type: ClusterIP
+      ports:
+        - name: mqtt-tcp
+          port: 1883
+          targetPort: 1883
+        - name: mqtt-ssl
+          port: 8883
+          targetPort: 8883
+        - name: ws
+          port: 8083
+          targetPort: 8083
+        - name: wss
+          port: 8084
+          targetPort: 8084
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: emqx-pdb
+  namespace: iot
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      apps.emqx.io/instance: emqx

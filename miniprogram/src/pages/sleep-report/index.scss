@@ -1,0 +1,365 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.sleep-report-page {
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+.scroll-container {
+  height: 100vh;
+}
+
+.header-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  margin: $spacing-md;
+}
+
+.date-info {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+}
+
+.date-text {
+  font-size: $font-size-lg;
+  color: $text-secondary;
+}
+
+.score-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.score-circle {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: 8px solid;
+  @include flex-center;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.score-number {
+  font-size: 64px;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.score-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.score-level {
+  font-size: $font-size-xl;
+  font-weight: bold;
+}
+
+.level-text {
+  color: white;
+}
+
+.duration-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin: $spacing-md;
+}
+
+.section-header {
+  margin-bottom: $spacing-lg;
+}
+
+.section-title {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.duration-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.duration-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+}
+
+.duration-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  @include flex-center;
+}
+
+.duration-icon .icon {
+  font-size: 24px;
+}
+
+.duration-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.duration-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.duration-value {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.metrics-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin: $spacing-md;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.metric-card {
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.metric-value {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $primary-color;
+}
+
+.structure-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin: $spacing-md;
+}
+
+.structure-chart {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.structure-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.structure-bar {
+  height: 24px;
+  border-radius: 4px;
+  min-width: 60px;
+}
+
+.structure-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  min-width: 80px;
+}
+
+.suggestions-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin: $spacing-md;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+}
+
+.suggestion-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.2);
+  @include flex-center;
+  flex-shrink: 0;
+}
+
+.suggestion-icon .icon {
+  font-size: 16px;
+}
+
+.suggestion-text {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $text-primary;
+  line-height: 1.6;
+}
+
+.empty-state {
+  @include flex-center;
+  min-height: 100vh;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: $spacing-md;
+}
+
+.empty-text {
+  font-size: $font-size-md;
+  color: $text-secondary;
+}
+
+.section-subtitle {
+  display: block;
+  margin-top: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.ai-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin: $spacing-md;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.question-chip {
+  padding: $spacing-sm $spacing-md;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+}
+
+.question-chip-text {
+  font-size: $font-size-sm;
+  color: $text-primary;
+}
+
+.ask-card {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.ask-input {
+  flex: 1;
+  height: 44px;
+  padding: 0 $spacing-md;
+  border-radius: $border-radius-md;
+  background: rgba(255, 255, 255, 0.06);
+  color: $text-primary;
+}
+
+.ask-button {
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $border-radius-md;
+  background: $primary-color;
+
+  &.disabled {
+    opacity: 0.7;
+  }
+}
+
+.ask-button-text {
+  color: white;
+  font-size: $font-size-sm;
+  font-weight: 600;
+}
+
+.ai-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ai-result-question {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.ai-result-answer {
+  font-size: $font-size-md;
+  line-height: 1.7;
+  color: $text-primary;
+}
+
+.ai-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.ai-list-title {
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.ai-list-item {
+  font-size: $font-size-sm;
+  line-height: 1.7;
+  color: $text-secondary;
+}
+
+.ai-caution {
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-md;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+.ai-caution-text {
+  font-size: $font-size-sm;
+  line-height: 1.6;
+  color: $text-primary;
+}

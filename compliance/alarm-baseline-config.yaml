@@ -1,0 +1,321 @@
+# 报警基线配置
+#
+# 定义各类报警的检测阈值、基线参数和验收标准。
+
+version: "1.0"
+last_updated: "2026-08-01"
+
+# 报警类型定义
+alarm_types:
+  # ============================================================
+  # 呼吸暂停报警
+  # ============================================================
+  apnea:
+    name: "呼吸暂停"
+    name_en: "Apnea"
+    severity: "high"
+    description: "检测到呼吸暂停事件"
+
+    # 检测参数
+    detection:
+      # 呼吸暂停判定：呼吸幅度低于阈值的持续时间
+      apnea_threshold_seconds: 10
+      # 低通气判定：呼吸幅度下降30%以上且血氧下降3%
+      hypopnea_threshold_seconds: 10
+      hypopnea_amplitude_drop_percent: 30
+      hypopnea_spo2_drop_percent: 3
+      # 呼吸幅度阈值（占正常呼吸的百分比）
+      respiration_amplitude_threshold_percent: 20
+      # 最小事件间隔（两个事件之间的最小间隔）
+      min_event_interval_seconds: 10
+      # 去抖时间
+      debounce_seconds: 5
+
+    # 严重程度分级
+    severity_levels:
+      mild:
+        description: "轻度"
+        ahi_range: [5, 15]
+        notification: "app_push"
+      moderate:
+        description: "中度"
+        ahi_range: [15, 30]
+        notification: "app_push + sms"
+      severe:
+        description: "重度"
+        ahi_range: [30, 999]
+        notification: "app_push + sms + phone_call"
+
+    # 报警阈值（每小时事件数 AHI）
+    thresholds:
+      warning: 5      # AHI >= 5 提示关注
+      alarm: 15       # AHI >= 15 触发报警
+      critical: 30    # AHI >= 30 严重报警
+
+    # 验收标准
+    acceptance_criteria:
+      sensitivity: ">= 90%"   # 灵敏度（真阳性率）
+      specificity: ">= 85%"   # 特异度（真阴性率）
+      false_positive_rate: "<= 10%"
+      false_negative_rate: "<= 10%"
+      detection_latency: "<= 30s"
+
+  # ============================================================
+  # 心动过速报警
+  # ============================================================
+  tachycardia:
+    name: "心动过速"
+    name_en: "Tachycardia"
+    severity: "medium"
+    description: "心率超过正常范围上限"
+
+    detection:
+      # 心率阈值（次/分钟）
+      heart_rate_threshold_bpm: 100
+      # 持续时间
+      duration_seconds: 30
+      # 去抖
+      debounce_seconds: 10
+      # 排除运动状态（通过加速度计判断）
+      exclude_exercise: true
+      exercise_acceleration_threshold: 1.5  # g
+
+    severity_levels:
+      mild:
+        bpm_range: [100, 120]
+        notification: "app_push"
+      moderate:
+        bpm_range: [120, 150]
+        notification: "app_push + sms"
+      severe:
+        bpm_range: [150, 999]
+        notification: "app_push + sms + phone_call"
+
+    thresholds:
+      warning: 100
+      alarm: 120
+      critical: 150
+
+    acceptance_criteria:
+      sensitivity: ">= 95%"
+      specificity: ">= 90%"
+      false_positive_rate: "<= 5%"
+      false_negative_rate: "<= 5%"
+
+  # ============================================================
+  # 心动过缓报警
+  # ============================================================
+  bradycardia:
+    name: "心动过缓"
+    name_en: "Bradycardia"
+    severity: "medium"
+    description: "心率低于正常范围下限"
+
+    detection:
+      heart_rate_threshold_bpm: 40
+      duration_seconds: 30
+      debounce_seconds: 10
+      # 睡眠中正常心率可能偏低，适当放宽
+      sleep_heart_rate_threshold_bpm: 35
+
+    severity_levels:
+      mild:
+        bpm_range: [35, 40]
+        notification: "app_push"
+      moderate:
+        bpm_range: [30, 35]
+        notification: "app_push + sms"
+      severe:
+        bpm_range: [0, 30]
+        notification: "app_push + sms + phone_call"
+
+    thresholds:
+      warning: 40
+      alarm: 35
+      critical: 30
+
+    acceptance_criteria:
+      sensitivity: ">= 95%"
+      specificity: ">= 90%"
+      false_positive_rate: "<= 5%"
+      false_negative_rate: "<= 5%"
+
+  # ============================================================
+  # 血氧异常报警
+  # ============================================================
+  low_spo2:
+    name: "血氧异常"
+    name_en: "Low SpO2"
+    severity: "high"
+    description: "血氧饱和度低于正常范围"
+
+    detection:
+      spo2_threshold_percent: 90
+      duration_seconds: 30
+      debounce_seconds: 10
+      # 排除传感器脱落（通过信号质量判断）
+      min_signal_quality: 0.5
+      # 排除运动伪影
+      exclude_motion_artifact: true
+
+    severity_levels:
+      mild:
+        spo2_range: [88, 90]
+        notification: "app_push"
+      moderate:
+        spo2_range: [85, 88]
+        notification: "app_push + sms"
+      severe:
+        spo2_range: [0, 85]
+        notification: "app_push + sms + phone_call"
+
+    thresholds:
+      warning: 92
+      alarm: 90
+      critical: 85
+
+    acceptance_criteria:
+      sensitivity: ">= 90%"
+      specificity: ">= 85%"
+      false_positive_rate: "<= 10%"
+      false_negative_rate: "<= 10%"
+
+  # ============================================================
+  # 设备离线报警
+  # ============================================================
+  device_offline:
+    name: "设备离线"
+    name_en: "Device Offline"
+    severity: "low"
+    description: "设备长时间未连接"
+
+    detection:
+      offline_threshold_minutes: 30
+      # 预期使用时段（夜间）
+      expected_usage_hours: [22, 23, 0, 1, 2, 3, 4, 5, 6]
+      # 非预期时段放宽
+      off_hours_threshold_minutes: 240
+
+    severity_levels:
+      mild:
+        offline_range: [30, 120]
+        notification: "app_push"
+      moderate:
+        offline_range: [120, 1440]
+        notification: "app_push"
+      severe:
+        offline_range: [1440, 99999]
+        notification: "app_push + email"
+
+    thresholds:
+      warning: 30
+      alarm: 120
+      critical: 1440
+
+    acceptance_criteria:
+      detection_accuracy: ">= 99%"
+      notification_latency: "<= 5min"
+
+  # ============================================================
+  # 电池低电量报警
+  # ============================================================
+  low_battery:
+    name: "电池低电量"
+    name_en: "Low Battery"
+    severity: "low"
+    description: "设备电池电量过低"
+
+    detection:
+      battery_threshold_percent: 20
+      critical_threshold_percent: 10
+      # 预计剩余使用时间
+      estimated_remaining_minutes: 60
+
+    severity_levels:
+      mild:
+        battery_range: [15, 20]
+        notification: "app_push"
+      moderate:
+        battery_range: [10, 15]
+        notification: "app_push"
+      severe:
+        battery_range: [0, 10]
+        notification: "app_push + sms"
+
+    thresholds:
+      warning: 20
+      alarm: 15
+      critical: 10
+
+    acceptance_criteria:
+      detection_accuracy: ">= 98%"
+
+# 全局配置
+global_config:
+  # 报警去抖（同一设备同一类型报警的最小间隔）
+  alarm_cooldown_minutes: 30
+  # 每日最大报警次数（防止骚扰）
+  max_alarms_per_day: 20
+  # 夜间静默时段（不发送推送通知，但记录报警）
+  quiet_hours:
+    enabled: true
+    start: "23:00"
+    end: "07:00"
+    exception_severities: ["critical"]  # 严重报警不受静默限制
+
+  # 报警通知渠道
+  notification_channels:
+    app_push:
+      enabled: true
+      max_per_hour: 10
+    sms:
+      enabled: true
+      max_per_day: 5
+    phone_call:
+      enabled: true
+      max_per_day: 3
+      only_severities: ["critical"]
+    email:
+      enabled: true
+      max_per_day: 10
+
+# 基线数据（用于对比）
+baseline_data:
+  # 正常人群参考值
+  normal_population:
+    adult_ahi: "< 5"
+    adult_heart_rate_sleep: "40-100 bpm"
+    adult_spo2_sleep: ">= 95%"
+    adult_sleep_duration: "7-9 hours"
+    adult_deep_sleep_ratio: "15-25%"
+    adult_rem_sleep_ratio: "20-25%"
+
+  # 设备测量精度
+  device_accuracy:
+    heart_rate_mae: "<= 3 bpm"
+    respiration_rate_mae: "<= 2 rpm"
+    spo2_mae: "<= 2%"
+    sleep_stage_accuracy: ">= 80%"
+
+# 验收测试数据集
+acceptance_test_datasets:
+  - name: "标准测试集"
+    description: "包含各类正常和异常睡眠数据的标准测试集"
+    sample_count: 1000
+    positive_ratio: 0.3
+    source: "临床标注数据"
+
+  - name: "边界测试集"
+    description: "包含阈值附近的边界案例"
+    sample_count: 200
+    focus: "阈值边界"
+
+  - name: "噪声测试集"
+    description: "包含运动伪影、传感器脱落等噪声数据"
+    sample_count: 300
+    focus: "鲁棒性测试"
+
+  - name: "特殊人群测试集"
+    description: "包含老年人、儿童、孕妇等特殊人群数据"
+    sample_count: 200
+    focus: "人群适应性"

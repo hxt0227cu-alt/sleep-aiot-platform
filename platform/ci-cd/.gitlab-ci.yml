@@ -1,0 +1,285 @@
+# GitLab CI/CD 流水线配置
+#
+# 睡眠监测平台的完整 CI/CD 流水线，包含构建、测试、安全扫描、
+# 镜像签名、部署、验收等阶段。
+
+stages:
+  - prepare
+  - build
+  - test
+  - security
+  - package
+  - deploy-staging
+  - acceptance
+  - deploy-production
+  - post-deploy
+
+# 全局变量
+variables:
+  REGISTRY: "registry.cn-shenzhen.aliyuncs.com"
+  IMAGE_PREFIX: "sleep-monitor"
+  KUBECTL_VERSION: "1.28"
+  HELM_VERSION: "3.13"
+  DOCKER_BUILDKIT: "1"
+  GOPROXY: "https://goproxy.cn,direct"
+  PIP_INDEX_URL: "https://pypi.tuna.tsinghua.edu.cn/simple"
+
+# 默认配置
+default:
+  image: docker:24-git
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "Starting pipeline for $CI_PROJECT_NAME"
+    - docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD $REGISTRY
+
+# ============================================================
+# Prepare 阶段
+# ============================================================
+prepare:env:
+  stage: prepare
+  image: alpine:3.18
+  script:
+    - echo "CI_COMMIT_SHA=$CI_COMMIT_SHA"
+    - echo "CI_COMMIT_SHORT_SHA=$CI_COMMIT_SHORT_SHA"
+    - echo "CI_COMMIT_BRANCH=$CI_COMMIT_BRANCH"
+    - echo "IMAGE_TAG=$CI_COMMIT_SHORT_SHA" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ============================================================
+# Build 阶段
+# ============================================================
+build:backend:
+  stage: build
+  script:
+    - cd backend
+    - docker build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from $REGISTRY/$IMAGE_PREFIX/backend:latest -t $REGISTRY/$IMAGE_PREFIX/backend:$IMAGE_TAG -t $REGISTRY/$IMAGE_PREFIX/backend:latest .
+    - docker push $REGISTRY/$IMAGE_PREFIX/backend:$IMAGE_TAG
+  rules:
+    - changes:
+        - backend/**/*
+      when: on_success
+
+build:firmware:
+  stage: build
+  image: espressif/idf:release-v5.1
+  script:
+    - cd firmware
+    - idf.py set-target esp32s3
+    - idf.py build
+    - cp build/sleep-monitor.bin ../artifacts/firmware-$IMAGE_TAG.bin
+  artifacts:
+    paths:
+      - artifacts/firmware-*.bin
+    expire_in: 30 days
+  rules:
+    - changes:
+        - firmware/**/*
+      when: on_success
+
+build:miniprogram:
+  stage: build
+  image: node:20-alpine
+  script:
+    - cd miniprogram
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - miniprogram/dist/
+    expire_in: 7 days
+  rules:
+    - changes:
+        - miniprogram/**/*
+      when: on_success
+
+# ============================================================
+# Test 阶段
+# ============================================================
+test:backend-unit:
+  stage: test
+  image: node:20-alpine
+  script:
+    - cd backend
+    - npm ci
+    - npm run test:unit -- --coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      junit: backend/test-results.xml
+    paths:
+      - backend/coverage/
+  rules:
+    - changes:
+        - backend/**/*
+      when: on_success
+
+test:firmware:
+  stage: test
+  image: espressif/idf:release-v5.1
+  script:
+    - cd firmware
+    - idf.py set-target esp32s3
+    - idf.py build
+    - python test/alarm_accuracy_test.py --data test/data/test_dataset.json --output test-results/alarm-accuracy.json
+    - python test/blackbox_key_protection_test.py --port /dev/ttyUSB0 --output test-results/key-protection.json
+  artifacts:
+    reports:
+      junit: firmware/test-results/*.xml
+    paths:
+      - firmware/test-results/
+  rules:
+    - changes:
+        - firmware/**/*
+      when: on_success
+
+# ============================================================
+# Security 阶段
+# ============================================================
+security:sast:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - trivy fs --exit-code 1 --severity CRITICAL,HIGH --format json --output sast-report.json .
+  artifacts:
+    paths:
+      - sast-report.json
+    reports:
+      sast: sast-report.json
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+security:secret-scan:
+  stage: security
+  image: trufflesecurity/trufflehog:latest
+  script:
+    - trufflehog filesystem . --json > secret-scan-report.json
+  artifacts:
+    paths:
+      - secret-scan-report.json
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+security:image-scan:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH --format json --output image-scan-report.json $REGISTRY/$IMAGE_PREFIX/backend:$IMAGE_TAG
+  artifacts:
+    paths:
+      - image-scan-report.json
+  allow_failure: true
+  needs: ["build:backend"]
+  rules:
+    - changes:
+        - backend/**/*
+      when: on_success
+
+# ============================================================
+# Package 阶段
+# ============================================================
+package:image-sign:
+  stage: package
+  script:
+    - docker pull $REGISTRY/$IMAGE_PREFIX/backend:$IMAGE_TAG
+    - cosign sign --key $COSIGN_PRIVATE_KEY $REGISTRY/$IMAGE_PREFIX/backend:$IMAGE_TAG
+    - cosign verify --key $COSIGN_PUBLIC_KEY $REGISTRY/$IMAGE_PREFIX/backend:$IMAGE_TAG
+  needs: ["build:backend", "security:image-scan"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+package:sbom:
+  stage: package
+  image: cyclonedx/cyclonedx-cli:latest
+  script:
+    - cyclonedx sbom add -i sbom.json -t application -n sleep-monitor -v $IMAGE_TAG
+    - cyclonedx analyze -i sbom.json -o sbom-analysis.json
+  artifacts:
+    paths:
+      - sbom.json
+      - sbom-analysis.json
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ============================================================
+# Deploy Staging 阶段
+# ============================================================
+deploy:staging:
+  stage: deploy-staging
+  image: bitnami/kubectl:1.28
+  script:
+    - kubectl config use-context staging
+    - helm upgrade --install sleep-monitor ./helm/sleep-monitor --namespace sleep-monitor --create-namespace --set image.tag=$IMAGE_TAG --set environment=staging
+    - kubectl rollout status deployment/sleep-monitor-backend -n sleep-monitor --timeout=300s
+  environment:
+    name: staging
+    url: https://staging.sleep-monitor.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+# ============================================================
+# Acceptance 阶段
+# ============================================================
+acceptance:smoke-test:
+  stage: acceptance
+  image: newman:latest
+  script:
+    - newman run tests/api/smoke-test.json --environment tests/api/staging.env.json --reporters cli,junit --reporter-junit-export smoke-test-report.xml
+  artifacts:
+    reports:
+      junit: smoke-test-report.xml
+  needs: ["deploy:staging"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+acceptance:load-test:
+  stage: acceptance
+  image: loadimpact/k6:latest
+  script:
+    - k6 run --out json=load-test-results.json tests/load/api-load-test.js
+  artifacts:
+    paths:
+      - load-test-results.json
+  needs: ["deploy:staging"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ============================================================
+# Deploy Production 阶段
+# ============================================================
+deploy:production:
+  stage: deploy-production
+  image: bitnami/kubectl:1.28
+  script:
+    - kubectl config use-context production
+    - helm upgrade --install sleep-monitor ./helm/sleep-monitor --namespace sleep-monitor --create-namespace --set image.tag=$IMAGE_TAG --set environment=production
+    - kubectl rollout status deployment/sleep-monitor-backend -n sleep-monitor --timeout=600s
+  environment:
+    name: production
+    url: https://api.sleep-monitor.com
+  when: manual
+  only:
+    - main
+
+# ============================================================
+# Post Deploy 阶段
+# ============================================================
+post-deploy:evidence-collect:
+  stage: post-deploy
+  script:
+    - ./platform/ci-cd/evidence-collector.sh --environment production --output evidence/
+  artifacts:
+    paths:
+      - evidence/
+  needs: ["deploy:production"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

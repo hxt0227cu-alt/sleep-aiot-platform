@@ -1,0 +1,260 @@
+# 内容审核标准
+#
+# 定义平台用户生成内容（UGC）和 AI 生成内容的审核标准。
+
+version: "1.0"
+last_updated: "2026-08-01"
+
+# 审核范围
+scope:
+  - "用户评论和反馈"
+  - "用户分享的睡眠报告"
+  - "用户昵称和头像"
+  - "AI 助手生成的回复"
+  - "社区帖子和讨论"
+  - "设备名称和房间名称"
+
+# 违规内容分类
+violation_categories:
+  # ============================================================
+  # 严重违规（立即删除 + 封号）
+  # ============================================================
+  severe:
+    - category: "政治敏感"
+      description: "涉及政治敏感话题、领导人、敏感事件"
+      action: "delete + ban_permanent"
+      examples:
+        - "攻击国家领导人"
+        - "传播政治谣言"
+        - "煽动颠覆国家政权"
+
+    - category: "违法犯罪"
+      description: "涉及违法犯罪活动"
+      action: "delete + ban_permanent + report"
+      examples:
+        - "贩卖毒品"
+        - "组织卖淫"
+        - "诈骗"
+        - "赌博"
+
+    - category: "暴力恐怖"
+      description: "涉及暴力、恐怖主义内容"
+      action: "delete + ban_permanent + report"
+      examples:
+        - "宣扬恐怖主义"
+        - "展示暴力血腥内容"
+        - "教唆犯罪"
+
+    - category: "未成年人保护"
+      description: "涉及未成年人的不良内容"
+      action: "delete + ban_permanent + report"
+      examples:
+        - "儿童色情"
+        - "教唆未成年人不良行为"
+        - "侵害未成年人权益"
+
+  # ============================================================
+  # 中度违规（删除 + 警告/临时封号）
+  # ============================================================
+  moderate:
+    - category: "色情低俗"
+      description: "涉及色情、低俗内容"
+      action: "delete + warning"
+      examples:
+        - "色情文字"
+        - "低俗暗示"
+        - "性暗示"
+
+    - category: "人身攻击"
+      description: "攻击、辱骂、诽谤他人"
+      action: "delete + warning"
+      examples:
+        - "辱骂他人"
+        - "人身攻击"
+        - "诽谤造谣"
+        - "人肉搜索"
+
+    - category: "医疗误导"
+      description: "传播错误的医疗信息，可能危害健康"
+      action: "delete + warning"
+      examples:
+        - "声称可以治愈疾病"
+        - "推荐未经证实的疗法"
+        - "否定正规医疗"
+        - "传播医疗谣言"
+
+    - category: "广告营销"
+      description: "未经授权的广告和营销内容"
+      action: "delete + warning"
+      examples:
+        - "发布商业广告"
+        - "引流到其他平台"
+        - "推销产品"
+
+    - category: "隐私泄露"
+      description: "泄露他人隐私信息"
+      action: "delete + warning + temporary_ban"
+      examples:
+        - "发布他人手机号"
+        - "发布他人身份证号"
+        - "发布他人住址"
+        - "未经授权发布他人照片"
+
+  # ============================================================
+  # 轻度违规（提醒/折叠）
+  # ============================================================
+  mild:
+    - category: "垃圾信息"
+      description: "无意义的重复内容或垃圾信息"
+      action: "collapse + warning"
+      examples:
+        - "重复发布相同内容"
+        - "无意义字符"
+        - "刷屏"
+
+    - category: "不文明用语"
+      description: "使用不文明用语但未构成人身攻击"
+      action: "filter + warning"
+      examples:
+        - "脏话"
+        - "不礼貌用语"
+
+    - category: "负面情绪"
+      description: "传播过度负面情绪或自杀倾向"
+      action: "flag + human_review + support_resource"
+      examples:
+        - "表达自杀倾向"
+        - "过度消极"
+        - "自我伤害倾向"
+
+    - category: "医疗咨询"
+      description: "用户寻求医疗建议（需要引导就医）"
+      action: "flag + medical_disclaimer"
+      examples:
+        - "我这是什么病？"
+        - "应该吃什么药？"
+
+# AI 生成内容审核
+ai_content_review:
+  enabled: true
+  checks:
+    - name: "医疗边界检查"
+      description: "检查 AI 回复是否超出医疗边界"
+      rules:
+        - "禁止做出医疗诊断"
+        - "禁止推荐处方药物"
+        - "必须包含免责声明（涉及健康建议时）"
+        - "紧急情况引导拨打120"
+
+    - name: "敏感词过滤"
+      description: "过滤敏感词汇"
+      method: "keyword_filter + semantic_analysis"
+
+    - name: "事实准确性检查"
+      description: "检查 AI 回复的事实准确性"
+      method: "knowledge_base_verification"
+
+    - name: "语气检查"
+      description: "检查 AI 回复的语气是否合适"
+      rules:
+        - "禁止使用绝对化用语"
+        - "禁止承诺治疗效果"
+        - "保持客观、中立的语气"
+
+# 审核流程
+review_process:
+  # 自动审核
+  auto_review:
+    enabled: true
+    response_time: "< 1s"
+    coverage: "100%"
+    methods:
+      - "关键词过滤"
+      - "语义分析"
+      - "图片识别"
+      - "AI 内容审核"
+
+  # 人工审核
+  human_review:
+    enabled: true
+    response_time: "< 24h"
+    triggers:
+      - "自动审核不确定的内容"
+      - "用户举报的内容"
+      - "高风险内容（医疗、政治等）"
+      - "AI 审核置信度低的内容"
+    reviewers:
+      - "内容审核员"
+      - "医疗顾问（医疗相关内容）"
+      - "法务（法律相关内容）"
+
+  # 申诉流程
+  appeal_process:
+    enabled: true
+    steps:
+      - "用户提交申诉"
+      - "审核员重新审核"
+      - "高级审核员终审"
+      - "通知用户结果"
+    response_time: "< 48h"
+
+# 用户举报
+user_report:
+  enabled: true
+  report_reasons:
+    - "政治敏感"
+    - "违法犯罪"
+    - "色情低俗"
+    - "人身攻击"
+    - "医疗误导"
+    - "广告营销"
+    - "隐私泄露"
+    - "垃圾信息"
+    - "其他"
+  process:
+    - "用户提交举报"
+    - "自动审核初筛"
+    - "人工审核确认"
+    - "处理并通知举报者"
+  response_time: "< 24h"
+
+# 处罚措施
+penalties:
+  - level: 1
+    name: "警告"
+    description: "首次轻度违规"
+    action: "发送警告通知"
+    duration: "永久记录"
+
+  - level: 2
+    name: "临时禁言"
+    description: "多次轻度违规或中度违规"
+    action: "禁止发布内容 1-7 天"
+    duration: "1-7 天"
+
+  - level: 3
+    name: "临时封号"
+    description: "严重中度违规或多次中度违规"
+    action: "封禁账号 7-30 天"
+    duration: "7-30 天"
+
+  - level: 4
+    name: "永久封号"
+    description: "严重违规"
+    action: "永久封禁账号"
+    duration: "永久"
+
+  - level: 5
+    name: "上报执法"
+    description: "涉嫌违法犯罪"
+    action: "保存证据并上报公安机关"
+    duration: "永久"
+
+# 合规标准
+compliance_standards:
+  - "《中华人民共和国网络安全法》"
+  - "《互联网信息服务管理办法》"
+  - "《网络信息内容生态治理规定》"
+  - "《未成年人网络保护条例》"
+  - "《个人信息保护法》"
+  - "《数据安全法》"

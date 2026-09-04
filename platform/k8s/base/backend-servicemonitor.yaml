@@ -1,0 +1,40 @@
+# Prometheus Operator 抓取配置（ADR-019）。
+#
+# 前置依赖：集群已安装 Prometheus Operator（CRD monitoring.coreos.com/v1）。
+# 若使用原生 Prometheus（非 Operator），请改用 scrape_config 并保留同样的
+# job 名与 relabel 结果，否则 backend-prometheusrule.yaml 里的告警表达式会失配。
+#
+# 注意：Prometheus 实例侧通常配置了 serviceMonitorSelector。
+# 若该 selector 不匹配下面的 labels，本对象会被静默忽略 —— 这是最常见的
+# "ServiceMonitor 已创建但没有 target" 故障原因。部署后必须验证 target 状态。
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend-api
+  namespace: sleep-platform
+  labels:
+    app.kubernetes.io/name: backend-api
+    # 供 Prometheus 实例的 serviceMonitorSelector 匹配；按集群约定调整。
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - sleep-platform
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend-api
+  endpoints:
+    - port: http
+      # 后端设置了全局前缀 api（main.ts: setGlobalPrefix('api')），
+      # 因此 Prometheus 端点是 /api/metrics 而不是 /metrics。
+      path: /api/metrics
+      scheme: http
+      interval: 30s
+      scrapeTimeout: 10s
+      honorLabels: false
+      relabelings:
+        # 用 Pod 名做 instance，便于按副本区分（WS 连接数是副本本地量）。
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: instance
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node

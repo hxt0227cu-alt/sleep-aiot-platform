@@ -1,0 +1,440 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.device-detail-page {
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+.scroll-container {
+  height: 100vh;
+}
+
+.header-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  margin: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+.device-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  @include flex-center;
+}
+
+.device-icon .icon {
+  font-size: 40px;
+}
+
+.device-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.device-name {
+  font-size: $font-size-xl;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.device-status {
+  font-size: $font-size-sm;
+  padding: 4px 12px;
+  border-radius: 12px;
+  display: inline-block;
+  width: fit-content;
+
+  &.online {
+    background: rgba(16, 185, 129, 0.2);
+    color: $success-color;
+  }
+
+  &.offline {
+    background: rgba(255, 255, 255, 0.1);
+    color: $text-muted;
+  }
+}
+
+.info-section {
+  margin: $spacing-md;
+}
+
+.info-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.card-header {
+  margin-bottom: $spacing-md;
+}
+
+.card-title {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.info-row {
+  @include flex-between;
+  padding: $spacing-sm 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.info-value {
+  font-size: $font-size-md;
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.ota-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin: $spacing-md;
+}
+
+.ota-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.current-version {
+  @include flex-between;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+}
+
+.version-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.version-value {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $primary-color;
+}
+
+.check-button {
+  padding: $spacing-md $spacing-xl;
+  background: $primary-color;
+  border-radius: $border-radius-md;
+  text-align: center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.button-text {
+  color: white;
+  font-size: $font-size-md;
+  font-weight: bold;
+}
+
+.actions-section {
+  margin: $spacing-md;
+}
+
+.actions-section .section-title {
+  margin-bottom: $spacing-md;
+}
+
+.title-text {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.action-item {
+  @include glass-effect;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-sm;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.action-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  @include flex-center;
+}
+
+.action-icon .icon {
+  font-size: 24px;
+}
+
+.action-text {
+  font-size: $font-size-md;
+  color: $text-primary;
+}
+
+.danger-section {
+  margin: $spacing-md;
+}
+
+.danger-section .section-title {
+  margin-bottom: $spacing-md;
+}
+
+.unbind-button {
+  padding: $spacing-lg;
+  background: rgba(239, 68, 68, 0.2);
+  border-radius: $border-radius-lg;
+  text-align: center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.unbind-text {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: #ef4444;
+}
+
+.ota-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  @include flex-center;
+  z-index: 1000;
+}
+
+.modal-content {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  width: 85%;
+  max-width: 400px;
+  background: $bg-secondary;
+}
+
+.modal-header {
+  @include flex-between;
+  margin-bottom: $spacing-lg;
+}
+
+.modal-title {
+  font-size: $font-size-xl;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.close-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  @include flex-center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.close-icon {
+  font-size: 18px;
+  color: $text-secondary;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.version-info {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.version-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+}
+
+.update-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.update-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.update-value {
+  font-size: $font-size-md;
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.release-notes {
+  margin-top: $spacing-md;
+}
+
+.notes-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  margin-bottom: 4px;
+}
+
+.notes-text {
+  font-size: $font-size-md;
+  color: $text-primary;
+  line-height: 1.6;
+}
+
+.progress-section {
+  margin-top: $spacing-lg;
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $primary-color, #10b981);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  margin-top: $spacing-sm;
+}
+
+.modal-footer {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+}
+
+.modal-button {
+  flex: 1;
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  text-align: center;
+  font-size: $font-size-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &.cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: $text-secondary;
+  }
+
+  &.confirm {
+    background: $primary-color;
+    color: white;
+  }
+
+  &.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.unbind-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  @include flex-center;
+  z-index: 1000;
+}
+
+.warning-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.2);
+  @include flex-center;
+}
+
+.warning-icon .icon {
+  font-size: 40px;
+}
+
+.warning-text {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+  text-align: center;
+}
+
+.warning-desc {
+  font-size: $font-size-md;
+  color: $text-secondary;
+  text-align: center;
+  line-height: 1.6;
+}

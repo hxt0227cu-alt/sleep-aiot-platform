@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-api
+  namespace: sleep-platform
+  annotations:
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-address-type: internet
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-spec: slb.s1.small
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-charge-type: paybytraffic
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-bandwidth: "1"
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-protocol-port: https:443
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-cert-id: REPLACE_WITH_SLB_CERT_ID
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-health-check-uri: /api/health/live
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  ports:
+    - name: https
+      port: 443
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-api-default-deny
+  namespace: sleep-platform
+spec:
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 3000

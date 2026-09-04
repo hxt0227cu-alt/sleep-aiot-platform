@@ -1,0 +1,91 @@
+/* 健康免责声明组件样式 */
+
+.disclaimer-container {
+  background-color: #fffbe6;
+  border: 2rpx solid #ffe58f;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin: 16rpx 0;
+}
+
+.disclaimer-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.disclaimer-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.disclaimer-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #d48806;
+}
+
+.disclaimer-content {
+  font-size: 24rpx;
+  color: #8c6d1f;
+  line-height: 1.6;
+}
+
+.disclaimer-content p {
+  margin: 8rpx 0;
+}
+
+.disclaimer-link {
+  color: #1890ff;
+  text-decoration: underline;
+}
+
+.disclaimer-footer {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #ffe58f;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.disclaimer-version {
+  font-size: 22rpx;
+  color: #ad8b00;
+}
+
+.disclaimer-acknowledge {
+  font-size: 24rpx;
+  color: #1890ff;
+}
+
+/* 紧凑模式 */
+.disclaimer-compact {
+  padding: 16rpx;
+}
+
+.disclaimer-compact .disclaimer-title {
+  font-size: 26rpx;
+}
+
+.disclaimer-compact .disclaimer-content {
+  font-size: 22rpx;
+}
+
+/* 严重模式（红色） */
+.disclaimer-severe {
+  background-color: #fff1f0;
+  border-color: #ffa39e;
+}
+
+.disclaimer-severe .disclaimer-title {
+  color: #cf1322;
+}
+
+.disclaimer-severe .disclaimer-content {
+  color: #a8071a;
+}
+
+.disclaimer-severe .disclaimer-footer {
+  border-top-color: #ffa39e;
+}

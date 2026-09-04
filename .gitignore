@@ -1,0 +1,66 @@
+# ---- Dependencies / Build artifacts ----
+node_modules/
+**/node_modules/
+dist/
+build/
+coverage/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.terraform/
+*.class
+*.jar
+
+# ---- Local environment / secrets ----
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+.env.*.local
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+pki/
+
+# ---- Logs ----
+*.log
+logs/
+**/logs/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# ---- Firmware generated ----
+firmware/build/
+firmware/managed_components/
+firmware/sdkconfig
+firmware/sdkconfig.old
+
+# ---- Miniprogram generated ----
+miniprogram/dist/
+miniprogram/.swc/
+miniprogram/project.private.config.json
+
+# ---- Local archives (not part of product) ----
+ui*.zip
+ui*.make
+*.tar.gz
+*.zip
+*.jpg
+*.png
+
+# ---- Misc ----
+.tmp/
+tmp/
+*.tsbuildinfo

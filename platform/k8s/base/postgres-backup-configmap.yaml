@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-backup-scripts
+  namespace: sleep-platform
+  labels:
+    app.kubernetes.io/part-of: sleep-platform
+    app.kubernetes.io/component: postgres
+data:
+  backup.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+    BACKUP_DIR="${BACKUP_DIR:-/backups}"
+    RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
+    DB_URL="${DATABASE_URL:-}"
+    log() { echo "[backup $(date -Iseconds)] $*"; }
+    if [[ -n "$DB_URL" ]]; then CONN=(--dbname="$DB_URL"); else CONN=(-h "${PGHOST:-localhost}" -p "${PGPORT:-5432}" -U "${PGUSER:-postgres}" --dbname="${PGDATABASE:-sleep_monitor}"); fi
+    mkdir -p "$BACKUP_DIR"
+    TS="$(date +%Y%m%d-%H%M%S)"
+    DUMP_FILE="${BACKUP_DIR}/sleep_monitor-${TS}.dump"
+    log "开始逻辑备份 -> ${DUMP_FILE}"
+    pg_dump --no-owner -Fc "${CONN[@]}" -f "$DUMP_FILE"
+    log "备份完成，大小 $(du -h "$DUMP_FILE" | cut -f1)"
+    if [[ -n "${BACKUP_S3_URL:-}" && -n "${BACKUP_S3_BUCKET:-}" ]]; then
+      if command -v aws >/dev/null 2>&1; then aws --endpoint-url "$BACKUP_S3_URL" s3 cp "$DUMP_FILE" "s3://${BACKUP_S3_BUCKET}/"; log "已上传 s3://${BACKUP_S3_BUCKET}/"; fi
+    fi
+    if [[ "${RETENTION_DAYS}" -gt 0 ]]; then find "$BACKUP_DIR" -maxdepth 1 -name 'sleep_monitor-*.dump' -mtime "+${RETENTION_DAYS}" -delete; fi
+    log "备份流程结束 OK"
+
+  restore.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+    DUMP="${1:?用法: restore.sh <dump-file> [target-db]}"
+    TARGET="${2:-${PGDATABASE:-sleep_monitor}}"
+    [[ -f "$DUMP" ]] || { echo "找不到 dump: $DUMP" >&2; exit 1; }
+    if [[ -n "${DATABASE_URL:-}" ]]; then CONN=(--dbname="$DATABASE_URL"); else CONN=(-h "${PGHOST:-localhost}" -p "${PGPORT:-5432}" -U "${PGUSER:-postgres}" --dbname="$TARGET"); fi
+    log() { echo "[restore $(date -Iseconds)] $*"; }
+    log "预检 dump 完整性 (pg_restore -l)"; pg_restore -l "$DUMP" >/dev/null
+    log "恢复到 ${TARGET}"; pg_restore --clean --if-exists --no-owner "${CONN[@]}" "$DUMP"
+    TABLES="$(psql "${CONN[@]}" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo 0)"
+    log "恢复完成，public 下表数量：${TABLES}"
+
+  verify-restore.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+    DUMP="${1:?用法: verify-restore.sh <dump-file>}"
+    [[ -f "$DUMP" ]] || { echo "找不到 dump: $DUMP" >&2; exit 1; }
+    if [[ -n "${DATABASE_URL:-}" ]]; then BASE="$DATABASE_URL"; ADMIN="$(printf '%s' "$BASE" | sed -E 's#/[^/?]+(\?.*)?$#/postgres#')"; TMP="$(printf '%s' "$BASE" | sed -E 's#.*/([^/?]+).*#\1#')_verify_$(date +%s)"; else ADMIN=(-h "${PGHOST:-localhost}" -p "${PGPORT:-5432}" -U "${PGUSER:-postgres}" --dbname=postgres); TMP="${PGDATABASE:-sleep_monitor}_verify_$(date +%s)"; fi
+    log() { echo "[verify $(date -Iseconds)] $*"; }
+    pg_restore -l "$DUMP" >/dev/null
+    if [[ -n "${DATABASE_URL:-}" ]]; then psql "$ADMIN" -c "CREATE DATABASE \"$TMP\";"; RDS="$(printf '%s' "$BASE" | sed -E "s#/[^/?]+(\?.*)?\$#/${TMP}#")"; else psql "${ADMIN[@]}" -c "CREATE DATABASE \"$TMP\";"; RDS=(-h "${PGHOST:-localhost}" -p "${PGPORT:-5432}" -U "${PGUSER:-postgres}" --dbname="$TMP"); fi
+    pg_restore --clean --if-exists --no-owner "${RDS[@]}" "$DUMP"
+    C="$(psql "${RDS[@]}" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo 0)"
+    [[ "${C:-0}" -gt 0 ]] || { echo "FAIL: 恢复后无表" >&2; psql "${ADMIN[@]}" -c "DROP DATABASE IF EXISTS \"$TMP\";" || true; exit 1; }
+    log "OK: 临时库恢复成功，public 表数量=${C}"; psql "${ADMIN[@]}" -c "DROP DATABASE IF EXISTS \"$TMP\";"
+    log "演练结束 OK"

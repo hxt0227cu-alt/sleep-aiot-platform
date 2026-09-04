@@ -1,0 +1,130 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.vital-signs-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+
+  &.loading {
+    .skeleton {
+      height: 80px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite;
+      border-radius: $border-radius-md;
+    }
+  }
+
+  &.empty {
+    @include flex-center;
+    min-height: 200px;
+
+    .empty-text {
+      color: $text-muted;
+      font-size: $font-size-md;
+    }
+  }
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.sign-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.sign-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  @include flex-center;
+  font-size: 24px;
+
+  &.heart {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+  }
+
+  &.breathing {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+  }
+
+  &.movement {
+    background: linear-gradient(135deg, #f9ca24, #f0932b);
+  }
+
+  &.sleep {
+    background: linear-gradient(135deg, #a55eea, #7e22ce);
+  }
+}
+
+.sign-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sign-value {
+  font-size: $font-size-3xl;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.sign-unit {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.sign-status {
+  font-size: $font-size-xs;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+
+  &.normal {
+    background: rgba(16, 185, 129, 0.2);
+    color: $success-color;
+  }
+
+  &.abnormal {
+    background: rgba(239, 68, 68, 0.2);
+    color: $danger-color;
+  }
+
+  &.low {
+    background: rgba(59, 130, 246, 0.2);
+    color: $info-color;
+  }
+
+  &.high {
+    background: rgba(245, 158, 11, 0.2);
+    color: $warning-color;
+  }
+}
+
+.sign-confidence {
+  font-size: $font-size-xs;
+  color: $text-muted;
+}

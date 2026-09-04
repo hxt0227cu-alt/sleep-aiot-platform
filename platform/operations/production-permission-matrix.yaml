@@ -1,0 +1,227 @@
+# 生产环境权限矩阵
+#
+# 定义生产环境的角色权限矩阵，遵循最小权限原则。
+
+version: "1.0"
+last_updated: "2026-08-01"
+
+# 角色定义
+roles:
+  # ============================================================
+  # 只读角色
+  # ============================================================
+  viewer:
+    description: "只读访问，可查看所有资源但不可修改"
+    kubernetes:
+      verbs: ["get", "list", "watch"]
+      resources: ["*"]
+      namespaces: ["*"]
+    database:
+      privileges: ["SELECT"]
+      tables: ["*"]
+    cloud:
+      permissions:
+        - "ecs:Describe*"
+        - "rds:Describe*"
+        - "slb:Describe*"
+        - "vpc:Describe*"
+        - "oss:GetObject"
+        - "oss:ListObjects"
+
+  # ============================================================
+  # 开发角色
+  # ============================================================
+  developer:
+    description: "开发人员，可查看日志和指标，不可修改生产配置"
+    inherits: ["viewer"]
+    kubernetes:
+      additional_verbs: ["log", "exec"]
+      additional_resources: ["pods/log", "pods/exec"]
+      restricted_namespaces: ["kube-system", "database", "vault"]
+    database:
+      additional_privileges: []
+      restricted_tables: ["users", "device_certificates", "audit_logs"]
+    cloud:
+      additional_permissions: []
+
+  # ============================================================
+  # 运维角色
+  # ============================================================
+  operator:
+    description: "运维人员，可执行部署和运维操作"
+    inherits: ["viewer"]
+    kubernetes:
+      additional_verbs: ["create", "update", "patch", "delete"]
+      additional_resources: ["deployments", "statefulsets", "configmaps", "secrets", "services", "ingresses"]
+      restricted_resources: ["nodes", "clusterroles", "clusterrolebindings"]
+      restricted_namespaces: ["kube-system"]
+    database:
+      additional_privileges: ["INSERT", "UPDATE", "DELETE"]
+      restricted_tables: ["users", "device_certificates"]
+    cloud:
+      additional_permissions:
+        - "ecs:RebootInstance"
+        - "rds:ModifyDBInstance"
+        - "slb:ModifyLoadBalancerInternetSpec"
+
+  # ============================================================
+  # 数据库管理员
+  # ============================================================
+  dba:
+    description: "数据库管理员，可管理数据库配置和性能"
+    inherits: ["viewer"]
+    database:
+      additional_privileges: ["ALL PRIVILEGES"]
+      additional_roles: ["pg_monitor", "pg_signal_backend"]
+      restricted_operations: ["DROP TABLE", "DROP DATABASE"]
+    kubernetes:
+      additional_verbs: ["get", "list", "watch", "log"]
+      additional_resources: ["pods", "pods/log", "statefulsets"]
+      namespaces: ["database"]
+
+  # ============================================================
+  # 安全管理员
+  # ============================================================
+  security_admin:
+    description: "安全管理员，可管理安全配置和审计"
+    inherits: ["viewer"]
+    kubernetes:
+      additional_verbs: ["get", "list", "watch", "create", "update", "patch"]
+      additional_resources: ["networkpolicies", "podsecuritypolicies", "secrets"]
+      namespaces: ["*"]
+    database:
+      additional_privileges: ["SELECT"]
+      additional_tables: ["audit_logs", "security_events"]
+    cloud:
+      additional_permissions:
+        - "ram:*"
+        - "kms:*"
+        - "actiontrail:*"
+        - "config:*"
+    vault:
+      policies: ["admin", "audit"]
+
+  # ============================================================
+  # 值班主管
+  # ============================================================
+  oncall_lead:
+    description: "值班主管，可执行紧急操作和回滚"
+    inherits: ["operator"]
+    kubernetes:
+      additional_verbs: ["delete"]
+      additional_resources: ["pods"]
+      emergency_operations:
+        - "rollback deployment"
+        - "restart pod"
+        - "scale deployment"
+    database:
+      additional_privileges: ["INSERT", "UPDATE", "DELETE"]
+      emergency_operations:
+        - "kill query"
+        - "switchover replication"
+
+  # ============================================================
+  # 管理员（最高权限）
+  # ============================================================
+  admin:
+    description: "系统管理员，最高权限（仅少数人拥有）"
+    inherits: ["operator", "dba", "security_admin", "oncall_lead"]
+    kubernetes:
+      additional_verbs: ["*"]
+      additional_resources: ["*"]
+      namespaces: ["*"]
+      require_approval_for:
+        - "delete namespace"
+        - "delete node"
+        - "modify clusterrole"
+    database:
+      additional_privileges: ["SUPERUSER"]
+      require_approval_for:
+        - "DROP DATABASE"
+        - "DROP TABLE"
+        - "ALTER SYSTEM"
+    cloud:
+      additional_permissions: ["*"]
+      require_approval_for:
+        - "delete instance"
+        - "modify security group"
+        - "release elastic ip"
+
+# 权限审批流程
+approval_workflow:
+  description: "高风险操作需要审批"
+  require_approval:
+    - operation: "生产环境数据库 DROP 操作"
+      approvers: ["dba", "engineering_manager"]
+      timeout: "1h"
+
+    - operation: "Kubernetes 命名空间删除"
+      approvers: ["admin", "engineering_manager"]
+      timeout: "30m"
+
+    - operation: "生产环境全量回滚"
+      approvers: ["oncall_lead", "engineering_manager"]
+      timeout: "15m"
+
+    - operation: "密钥轮换"
+      approvers: ["security_admin", "engineering_manager"]
+      timeout: "2h"
+
+    - operation: "生产环境配置变更"
+      approvers: ["operator", "oncall_lead"]
+      timeout: "30m"
+
+  emergency_override:
+    description: "紧急情况下可跳过审批，但需要事后补审批"
+    conditions:
+      - "P1 故障且影响超过 1000 用户"
+      - "安全事件需要立即响应"
+      - "数据丢失风险"
+    requirements:
+      - "操作后 1 小时内提交事后审批"
+      - "记录操作原因和执行人"
+      - "24 小时内完成事后复盘"
+
+# 权限审计
+audit:
+  description: "权限审计配置"
+  frequency: "monthly"
+  checks:
+    - name: "权限最小化检查"
+      description: "检查是否有过度授权的账号"
+      tool: "kubernetes-rbac-audit"
+
+    - name: "闲置账号清理"
+      description: "检查 90 天未登录的账号"
+      tool: "cloud-iam-audit"
+
+    - name: "权限变更审计"
+      description: "检查最近 30 天的权限变更"
+      tool: "audit-log-analyzer"
+
+    - name: "密钥访问审计"
+      description: "检查 Vault 密钥访问日志"
+      tool: "vault-audit"
+
+  report_recipients:
+    - "security_admin"
+    - "engineering_manager"
+    - "cto"
+
+# 人员权限映射（示例）
+user_role_mapping:
+  description: "人员角色映射（实际维护在 IAM 系统中）"
+  note: "此为示例，实际以 IAM 系统配置为准"
+  groups:
+    - name: "engineering-team"
+      roles: ["developer"]
+    - name: "ops-team"
+      roles: ["operator"]
+    - name: "dba-team"
+      roles: ["dba"]
+    - name: "security-team"
+      roles: ["security_admin"]
+    - name: "oncall-leads"
+      roles: ["oncall_lead"]
+    - name: "engineering-managers"
+      roles: ["admin"]

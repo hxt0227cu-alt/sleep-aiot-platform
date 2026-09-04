@@ -1,0 +1,133 @@
+.sleep-score-chart {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  .chart-container {
+    margin-bottom: 16px;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+  }
+
+  .score-details {
+    .score-summary {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 24px;
+
+      .score-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 4px solid #3b82f6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+
+        .score-number {
+          font-size: 36px;
+          font-weight: 700;
+          color: #111827;
+          line-height: 1;
+        }
+
+        .score-label {
+          font-size: 12px;
+          color: #6b7280;
+          margin-top: 4px;
+        }
+      }
+
+      .score-level {
+        .level-text {
+          font-size: 18px;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .dimension-details {
+      margin-bottom: 24px;
+
+      .details-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 16px;
+      }
+
+      .dimension-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .dimension-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+
+          .dimension-label {
+            width: 80px;
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            flex-shrink: 0;
+          }
+
+          .dimension-bar {
+            flex: 1;
+            height: 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            overflow: hidden;
+
+            .dimension-fill {
+              height: 100%;
+              border-radius: 4px;
+              transition: width 0.3s ease;
+            }
+          }
+
+          .dimension-value {
+            width: 40px;
+            font-size: 14px;
+            color: #111827;
+            font-weight: 600;
+            text-align: right;
+            flex-shrink: 0;
+          }
+        }
+      }
+    }
+
+    .suggestions {
+      .suggestions-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 12px;
+      }
+
+      .suggestion-item {
+        padding: 12px;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin-bottom: 8px;
+
+        .suggestion-text {
+          font-size: 14px;
+          color: #374151;
+          line-height: 1.5;
+        }
+      }
+    }
+  }
+}

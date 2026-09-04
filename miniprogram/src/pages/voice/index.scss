@@ -1,0 +1,489 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.voice-page {
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+.scroll-container {
+  height: 100vh;
+}
+
+.header-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  margin: $spacing-md;
+}
+
+.title-section {
+  margin-bottom: $spacing-lg;
+}
+
+.page-title {
+  font-size: $font-size-3xl;
+  font-weight: bold;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.page-subtitle {
+  font-size: $font-size-md;
+  color: $text-secondary;
+}
+
+.voice-status {
+  @include flex-center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+
+  &.enabled {
+    background: $success-color;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  }
+
+  &.disabled {
+    background: $text-muted;
+  }
+}
+
+.status-text {
+  font-size: $font-size-md;
+  color: $text-primary;
+}
+
+.settings-section {
+  margin: $spacing-md;
+}
+
+.section-header {
+  margin-bottom: $spacing-lg;
+}
+
+.section-title {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.setting-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-md 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-label {
+  font-size: $font-size-md;
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.setting-desc {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.toggle-switch {
+  align-self: flex-end;
+}
+
+.switch-track {
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  position: relative;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &.on {
+    background: $primary-color;
+  }
+}
+
+.switch-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: all $transition-normal;
+
+  &.on {
+    left: 26px;
+  }
+}
+
+.wakeup-word-input {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+}
+
+.input-field {
+  flex: 1;
+  height: 40px;
+  padding: 0 $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: $border-radius-sm;
+  color: $text-primary;
+  font-size: $font-size-md;
+}
+
+.save-button {
+  padding: $spacing-sm $spacing-lg;
+  background: $primary-color;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.button-text {
+  color: white;
+  font-size: $font-size-sm;
+  font-weight: bold;
+}
+
+.commands-section {
+  margin: $spacing-md;
+}
+
+.commands-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.commands-grid.single-column {
+  grid-template-columns: 1fr;
+}
+
+.command-card {
+  @include glass-effect;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.command-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  @include flex-center;
+}
+
+.command-icon .icon {
+  font-size: 24px;
+}
+
+.command-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.command-text {
+  font-size: $font-size-md;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.command-desc {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.recognition-section {
+  margin: $spacing-md;
+}
+
+.recognition-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+}
+
+.recognition-result {
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+}
+
+.result-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.result-text {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $primary-color;
+  min-height: 32px;
+}
+
+.recognition-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.action-button {
+  @include flex-center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-xl;
+  background: $primary-color;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &.recording {
+    background: $danger-color;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.action-button .icon {
+  font-size: 20px;
+}
+
+.action-button .button-text {
+  color: white;
+  font-size: $font-size-md;
+  font-weight: bold;
+}
+
+.white-noise-section {
+  margin: $spacing-md;
+}
+
+.section-note {
+  display: block;
+  margin-top: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.assistant-section {
+  margin: $spacing-md;
+}
+
+.assistant-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.assistant-input {
+  height: 44px;
+  padding: 0 $spacing-md;
+  border-radius: $border-radius-md;
+  background: rgba(255, 255, 255, 0.06);
+  color: $text-primary;
+}
+
+.assistant-button {
+  align-self: flex-end;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $border-radius-md;
+  background: $primary-color;
+
+  &.disabled {
+    opacity: 0.7;
+  }
+}
+
+.assistant-button-text {
+  color: white;
+  font-size: $font-size-sm;
+  font-weight: 600;
+}
+
+.assistant-result-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin-top: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.assistant-result-title {
+  font-size: $font-size-md;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.assistant-result-line {
+  font-size: $font-size-sm;
+  line-height: 1.6;
+  color: $text-secondary;
+}
+
+.assistant-result-answer {
+  font-size: $font-size-md;
+  line-height: 1.7;
+  color: $text-primary;
+}
+
+.scheduled-list,
+.source-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.question-chip {
+  padding: $spacing-sm $spacing-md;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.question-chip-text {
+  font-size: $font-size-sm;
+  color: $text-primary;
+}
+
+.matched-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.topic-badge {
+  padding: 6px $spacing-sm;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.topic-badge-text {
+  font-size: $font-size-xs;
+  color: $text-primary;
+}
+
+.noise-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.noise-card {
+  @include glass-effect;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  position: relative;
+}
+
+.noise-cover {
+  width: 60px;
+  height: 60px;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+}
+
+.noise-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.noise-name {
+  font-size: $font-size-md;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.noise-category {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.noise-duration {
+  font-size: $font-size-xs;
+  color: $text-muted;
+}
+
+.noise-action {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.2);
+  @include flex-center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &.playing {
+    background: $danger-color;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.noise-action .icon {
+  font-size: 18px;
+  color: white;
+}

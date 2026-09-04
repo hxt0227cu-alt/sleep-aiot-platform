@@ -1,0 +1,796 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String                  @id @default(uuid()) @map("user_id")
+  phone                  String                  @unique
+  password               String                  @map("password_hash")
+  nickname               String?
+  avatarUrl              String?                 @map("avatar_url")
+  wechatOpenid           String?                 @map("wechat_openid")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  lastLoginAt            DateTime?               @map("last_login_at")
+  status                 String                  @default("active")
+  authSessions           AuthSession[]
+  loginAudits            LoginAudit[]
+  userDevices            UserDevice[]
+  alarmRecords           AlarmRecord[]
+  sleepReports           SleepReport[]
+  emergencyContacts      EmergencyContact[]
+  userSettings           UserSetting[]
+  lightAlarms            LightAlarm[]
+  sleepPlan              SleepPlan?
+  sleepRoutineTemplate   SleepRoutineTemplate?
+  sleepRoutineRecords    SleepRoutineRecord[]
+  sleepDiaries           SleepDiary[]
+  sleepRelaxRecords      SleepRelaxRecord[]
+  deviceProvisionTokens  DeviceProvisionToken[]
+  deviceBindingSessions  DeviceBindingSession[]
+  deviceCommandRecords   DeviceCommandRecord[]
+  scheduledDeviceActions ScheduledDeviceAction[]
+  tenantMemberships      TenantMember[]
+  agentRuns              AgentRun[]
+  auditEvents            AuditEvent[]
+
+  @@map("users")
+}
+
+model AuthSession {
+  id               String       @id @default(uuid()) @map("session_id")
+  userId           String       @map("user_id")
+  refreshTokenHash String       @map("refresh_token_hash")
+  loginMethod      String       @map("login_method")
+  sessionType      String       @default("app") @map("session_type")
+  ipAddress        String?      @map("ip_address")
+  userAgent        String?      @map("user_agent")
+  deviceId         String?      @map("device_id")
+  deviceName       String?      @map("device_name")
+  isActive         Boolean      @default(true) @map("is_active")
+  issuedAt         DateTime     @default(now()) @map("issued_at")
+  lastUsedAt       DateTime     @default(now()) @map("last_used_at")
+  expiresAt        DateTime     @map("expires_at")
+  revokedAt        DateTime?    @map("revoked_at")
+  revokedReason    String?      @map("revoked_reason")
+  metadata         Json?
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loginAudits      LoginAudit[]
+
+  @@index([userId, isActive])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model VerificationCode {
+  id            String    @id @default(uuid()) @map("verification_code_id")
+  phone         String
+  type          String
+  codeHash      String    @map("code_hash")
+  channel       String    @default("sms")
+  status        String    @default("pending")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  maxAttempts   Int       @default(5) @map("max_attempts")
+  sentAt        DateTime  @default(now()) @map("sent_at")
+  expiresAt     DateTime  @map("expires_at")
+  consumedAt    DateTime? @map("consumed_at")
+  invalidatedAt DateTime? @map("invalidated_at")
+  metadata      Json?
+
+  @@index([phone, type, status])
+  @@index([expiresAt])
+  @@map("verification_codes")
+}
+
+model LoginAudit {
+  id            String       @id @default(uuid()) @map("audit_id")
+  userId        String?      @map("user_id")
+  phone         String?
+  sessionId     String?      @map("session_id")
+  loginMethod   String       @map("login_method")
+  status        String
+  ipAddress     String?      @map("ip_address")
+  userAgent     String?      @map("user_agent")
+  failureReason String?      @map("failure_reason")
+  metadata      Json?
+  createdAt     DateTime     @default(now()) @map("created_at")
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  session       AuthSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([phone, createdAt])
+  @@index([sessionId, createdAt])
+  @@map("login_audits")
+}
+
+model UserSetting {
+  id           Int      @id @default(autoincrement())
+  userId       String   @map("user_id")
+  settingKey   String   @map("setting_key")
+  settingValue Json     @map("setting_value")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, settingKey])
+  @@index([userId])
+  @@map("user_settings")
+}
+
+model Device {
+  id                     String                  @id @default(uuid()) @map("device_id")
+  name                   String                  @map("device_name")
+  type                   String                  @default("sleep_lamp") @map("device_type")
+  firmwareVersion        String?                 @map("firmware_version")
+  macAddress             String?                 @unique @map("mac_address")
+  chipId                 String?                 @map("chip_id")
+  psramSize              String?                 @map("psram_size")
+  location               String?
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  lastSeen               DateTime?               @map("last_seen")
+  status                 String                  @default("offline")
+  userDevices            UserDevice[]
+  alarmRecords           AlarmRecord[]
+  alarmConfigs           AlarmConfig[]
+  deviceConfigs          DeviceConfig[]
+  sleepReports           SleepReport[]
+  lightAlarms            LightAlarm[]
+  sleepDiaries           SleepDiary[]
+  deviceProvisionTokens  DeviceProvisionToken[]
+  deviceBindingSessions  DeviceBindingSession[]
+  deviceCommandRecords   DeviceCommandRecord[]
+  scheduledDeviceActions ScheduledDeviceAction[]
+  tenantId               String?                 @map("tenant_id")
+  tenant                 Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([macAddress])
+  @@index([status])
+  @@index([tenantId, status])
+  @@map("devices")
+}
+
+model UserDevice {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  deviceId    String   @map("device_id")
+  bindingCode String?  @map("binding_code")
+  role        String   @default("owner")
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  Tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId    String?
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@index([deviceId])
+  @@map("user_devices")
+}
+
+model AlarmRecord {
+  id        String    @id @default(uuid()) @map("alarm_id")
+  deviceId  String    @map("device_id")
+  userId    String?   @map("user_id")
+  type      String    @map("alarm_type")
+  level     String    @map("alarm_level")
+  message   String
+  value     Decimal?  @db.Decimal(10, 2)
+  threshold Decimal?  @db.Decimal(10, 2)
+  timestamp DateTime
+  status    String    @default("pending")
+  handledBy String?   @map("handled_by")
+  handledAt DateTime? @map("handled_at")
+  note      String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  tenantId  String    @map("tenant_id")
+  device    Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([deviceId])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([status])
+  @@index([tenantId, timestamp])
+  @@map("alarm_records")
+}
+
+model AlarmConfig {
+  id        Int      @id @default(autoincrement())
+  deviceId  String   @map("device_id")
+  type      String   @map("alarm_type")
+  enabled   Boolean  @default(true)
+  threshold Decimal  @db.Decimal(10, 2)
+  duration  Int      @default(60)
+  actions   Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  Tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId  String?
+
+  @@unique([deviceId, type])
+  @@index([deviceId])
+  @@map("alarm_configs")
+}
+
+model EmergencyContact {
+  id           String   @id @default(uuid()) @map("contact_id")
+  userId       String   @map("user_id")
+  name         String
+  phone        String
+  relationship String?
+  priority     Int      @default(1)
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId     String?
+
+  @@index([userId])
+  @@map("emergency_contacts")
+}
+
+model DeviceConfig {
+  id          Int      @id @default(autoincrement())
+  deviceId    String   @map("device_id")
+  configKey   String   @map("config_key")
+  configValue Json     @map("config_value")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  Tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId    String?
+
+  @@unique([deviceId, configKey])
+  @@index([deviceId])
+  @@map("device_configs")
+}
+
+model FirmwareVersion {
+  id         Int      @id @default(autoincrement())
+  version    String   @unique
+  deviceType String   @map("device_type")
+  fileUrl    String   @map("file_url")
+  fileSize   Int      @map("file_size")
+  checksum   String
+  changelog  String?
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([deviceType])
+  @@index([isActive])
+  @@map("firmware_versions")
+}
+
+model LightAlarm {
+  id               String   @id @default(uuid()) @map("alarm_id")
+  deviceId         String   @map("device_id")
+  userId           String   @map("user_id")
+  time             String
+  mode             String
+  brightnessTarget Int      @map("brightness_target")
+  colorTempTarget  Int      @map("color_temp_target")
+  rampMinutes      Int      @default(15) @map("ramp_minutes")
+  enabled          Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  device           Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Tenant           Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId         String?
+
+  @@index([deviceId])
+  @@index([userId])
+  @@map("light_alarms")
+}
+
+model DeviceProvisionToken {
+  id             String                @id @default(uuid()) @map("provision_token_id")
+  token          String                @unique
+  userId         String                @map("user_id")
+  deviceId       String?               @map("device_id")
+  status         String                @default("pending")
+  metadata       Json?
+  expiresAt      DateTime              @map("expires_at")
+  claimedAt      DateTime?             @map("claimed_at")
+  completedAt    DateTime?             @map("completed_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device         Device?               @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  bindingSession DeviceBindingSession?
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("device_provision_tokens")
+}
+
+model DeviceBindingSession {
+  id               String                @id @default(uuid()) @map("binding_session_id")
+  userId           String?               @map("user_id")
+  deviceId         String?               @map("device_id")
+  provisionTokenId String?               @unique @map("provision_token_id")
+  bindingCode      String?               @map("binding_code")
+  sessionType      String                @map("session_type")
+  status           String                @default("pending")
+  requestMetadata  Json?                 @map("request_metadata")
+  expiresAt        DateTime?             @map("expires_at")
+  completedAt      DateTime?             @map("completed_at")
+  unboundAt        DateTime?             @map("unbound_at")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  user             User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  device           Device?               @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  provisionToken   DeviceProvisionToken? @relation(fields: [provisionTokenId], references: [id], onDelete: SetNull)
+  Tenant           Tenant?               @relation(fields: [tenantId], references: [id])
+  tenantId         String?
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([bindingCode])
+  @@index([sessionType])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("device_binding_sessions")
+}
+
+model DeviceCommandRecord {
+  id           String    @id @default(uuid()) @map("command_record_id")
+  commandId    String    @unique @map("command_id")
+  deviceId     String    @map("device_id")
+  userId       String    @map("user_id")
+  command      String
+  params       Json
+  status       String    @default("pending")
+  topic        String
+  response     Json?
+  errorMessage String?   @map("error_message")
+  timeoutMs    Int       @map("timeout_ms")
+  sentAt       DateTime  @map("sent_at")
+  respondedAt  DateTime? @map("responded_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  device       Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Tenant       Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId     String?
+
+  @@index([deviceId])
+  @@index([userId])
+  @@index([status])
+  @@index([sentAt])
+  @@map("device_command_records")
+}
+
+model SleepPlan {
+  id              String   @id @default(uuid()) @map("plan_id")
+  userId          String   @unique @map("user_id")
+  bedTime         String   @map("bed_time")
+  sleepDuration   Float    @map("sleep_duration")
+  wakeTime        String   @map("wake_time")
+  reminderEnabled Boolean  @default(true) @map("reminder_enabled")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  tenantId        String   @map("tenant_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, updatedAt])
+  @@map("sleep_plans")
+}
+
+model SleepRoutineTemplate {
+  id        String   @id @default(uuid()) @map("template_id")
+  userId    String   @unique @map("user_id")
+  steps     Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId  String?
+
+  @@map("sleep_routine_templates")
+}
+
+model SleepRoutineRecord {
+  id            String    @id @default(uuid()) @map("record_id")
+  userId        String    @map("user_id")
+  date          DateTime  @db.Date
+  startedAt     DateTime  @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  stepsSnapshot Json      @default("[]") @map("steps_snapshot")
+  finished      Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  tenantId      String    @map("tenant_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([date])
+  @@index([tenantId, date])
+  @@map("sleep_routine_records")
+}
+
+model SleepDiary {
+  id                String   @id @default(uuid()) @map("diary_id")
+  userId            String   @map("user_id")
+  deviceId          String?  @map("device_id")
+  date              DateTime @db.Date
+  bedTime           String   @map("bed_time")
+  wakeTime          String   @map("wake_time")
+  fallAsleepMinutes Int      @map("fall_asleep_minutes")
+  quality           String
+  summary           String
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  tenantId          String   @map("tenant_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device            Device?  @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([date])
+  @@index([deviceId])
+  @@index([tenantId, date])
+  @@map("sleep_diaries")
+}
+
+model SleepRelaxRecord {
+  id              String   @id @default(uuid()) @map("record_id")
+  userId          String   @map("user_id")
+  methodId        String   @map("method_id")
+  methodName      String   @map("method_name")
+  durationSeconds Int      @map("duration_seconds")
+  status          String
+  completedAt     DateTime @map("completed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  tenantId        String   @map("tenant_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([completedAt])
+  @@index([tenantId, completedAt])
+  @@map("sleep_relax_records")
+}
+
+model SleepReport {
+  id                String   @id @default(uuid()) @map("report_id")
+  deviceId          String   @map("device_id")
+  userId            String?  @map("user_id")
+  reportDate        DateTime @map("report_date") @db.Date
+  sleepScore        Int?     @map("sleep_score")
+  sleepDuration     Json?    @map("sleep_duration")
+  sleepEfficiency   Int?     @map("sleep_efficiency")
+  sleepLatency      Int?     @map("sleep_latency")
+  awakenings        Int      @default(0)
+  sleepStructure    Json?    @map("sleep_structure")
+  vitalSigns        Json?    @map("vital_signs")
+  healthSuggestions Json     @default("[]") @map("health_suggestions")
+  createdAt         DateTime @default(now()) @map("created_at")
+  tenantId          String   @map("tenant_id")
+  device            Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@unique([deviceId, reportDate])
+  @@index([deviceId])
+  @@index([reportDate])
+  @@index([tenantId, reportDate])
+  @@map("sleep_reports")
+}
+
+model VitalSignsData {
+  id            String   @default(uuid())
+  deviceId      String   @map("device_id")
+  timestamp     DateTime
+  heartRate     Int?     @map("heart_rate")
+  breathingRate Int?     @map("breathing_rate")
+  bodyMovement  Decimal? @map("body_movement") @db.Decimal(10, 2)
+  sleepState    String?  @map("sleep_state")
+  sleepScore    Int?     @map("sleep_score")
+  confidence    Decimal? @db.Decimal(5, 2)
+  rawData       Json?    @map("raw_data")
+  tenantId      String   @map("tenant_id")
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@id([id, timestamp])
+  @@index([deviceId])
+  @@index([timestamp])
+  @@index([tenantId, timestamp])
+  @@map("vital_signs_data")
+}
+
+model SleepStateData {
+  id         String   @default(uuid())
+  deviceId   String   @map("device_id")
+  timestamp  DateTime
+  state      String
+  duration   Int
+  confidence Decimal? @db.Decimal(5, 2)
+  tenantId   String   @map("tenant_id")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@id([id, timestamp])
+  @@index([deviceId])
+  @@index([timestamp])
+  @@index([tenantId, timestamp])
+  @@map("sleep_state_data")
+}
+
+model ScheduledDeviceAction {
+  id               String    @id @default(uuid())
+  deviceId         String    @map("device_id")
+  userId           String    @map("user_id")
+  actionType       String    @map("action_type")
+  command          String
+  params           Json
+  executeAt        DateTime  @map("execute_at")
+  status           String    @default("pending")
+  relatedRequestId String?   @map("related_request_id")
+  executedAt       DateTime? @map("executed_at")
+  errorMessage     String?   @map("error_message")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  device           Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Tenant           Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId         String?
+
+  @@index([deviceId])
+  @@index([userId])
+  @@index([status, executeAt])
+  @@map("scheduled_device_actions")
+}
+
+model KnowledgeDocument {
+  id         String           @id @default(uuid()) @map("document_id")
+  scope      String           @default("global")
+  tenantId   String?          @map("tenant_id")
+  sourcePath String           @map("source_path")
+  title      String
+  version    String?
+  checksum   String
+  metadata   Json?
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+  chunks     KnowledgeChunk[]
+  tenant     Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([scope, tenantId])
+  @@index([sourcePath])
+  @@map("knowledge_documents")
+}
+
+model KnowledgeChunk {
+  id         String                 @id @default(uuid()) @map("chunk_id")
+  documentId String                 @map("document_id")
+  section    String
+  chunkIndex Int                    @map("chunk_index")
+  tokenCount Int                    @map("token_count")
+  content    String
+  metadata   Json?
+  embedding  Unsupported("vector")? @map("embedding")
+  createdAt  DateTime               @default(now()) @map("created_at")
+  updatedAt  DateTime               @updatedAt @map("updated_at")
+  document   KnowledgeDocument      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  Tenant     Tenant?                @relation(fields: [tenantId], references: [id])
+  tenantId   String?
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@map("knowledge_chunks")
+}
+
+model Tenant {
+  id                     String                  @id @default(uuid()) @map("tenant_id")
+  name                   String
+  status                 String                  @default("active")
+  metadata               Json?
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  members                TenantMember[]
+  devices                Device[]
+  quota                  TenantQuota?
+  agentRuns              AgentRun[]
+  algorithmProposals     AlgorithmProposal[]
+  auditEvents            AuditEvent[]
+  outboxEvents           OutboxEvent[]
+  alarmRecords           AlarmRecord[]
+  sleepPlans             SleepPlan[]
+  sleepRoutineRecords    SleepRoutineRecord[]
+  sleepDiaries           SleepDiary[]
+  sleepRelaxRecords      SleepRelaxRecord[]
+  sleepReports           SleepReport[]
+  vitalSignsData         VitalSignsData[]
+  sleepStateData         SleepStateData[]
+  knowledgeDocuments     KnowledgeDocument[]
+  userDevices            UserDevice[]
+  alarmConfigs           AlarmConfig[]
+  deviceConfigs          DeviceConfig[]
+  lightAlarms            LightAlarm[]
+  deviceBindingSessions  DeviceBindingSession[]
+  deviceCommandRecords   DeviceCommandRecord[]
+  scheduledDeviceActions ScheduledDeviceAction[]
+  emergencyContacts      EmergencyContact[]
+  sleepRoutineTemplates  SleepRoutineTemplate[]
+  knowledgeChunks        KnowledgeChunk[]
+
+  @@index([status])
+  @@map("tenants")
+}
+
+model TenantMember {
+  id        String   @id @default(uuid()) @map("tenant_member_id")
+  tenantId  String   @map("tenant_id")
+  userId    String   @map("user_id")
+  role      String   @default("member")
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId, status])
+  @@map("tenant_members")
+}
+
+model TenantQuota {
+  id                  String   @id @default(uuid()) @map("tenant_quota_id")
+  tenantId            String   @unique @map("tenant_id")
+  maxUsers            Int      @default(10) @map("max_users")
+  maxDevices          Int      @default(20) @map("max_devices")
+  maxAgentConcurrency Int      @default(2) @map("max_agent_concurrency")
+  dailyTokenBudget    BigInt?  @map("daily_token_budget")
+  storageBytes        BigInt?  @map("storage_bytes")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_quotas")
+}
+
+model AgentRun {
+  id                String             @id @default(uuid()) @map("run_id")
+  tenantId          String             @map("tenant_id")
+  userId            String?            @map("user_id")
+  agentType         String             @map("agent_type")
+  workflowVersion   String             @default("v1") @map("workflow_version")
+  status            String             @default("queued")
+  priority          Int                @default(50)
+  input             Json
+  output            Json?
+  errorCode         String?            @map("error_code")
+  errorMessage      String?            @map("error_message")
+  model             String?
+  promptVersion     String?            @map("prompt_version")
+  tokenInput        Int?               @map("token_input")
+  tokenOutput       Int?               @map("token_output")
+  queuedAt          DateTime           @default(now()) @map("queued_at")
+  startedAt         DateTime?          @map("started_at")
+  completedAt       DateTime?          @map("completed_at")
+  cancelledAt       DateTime?          @map("cancelled_at")
+  expiresAt         DateTime?          @map("expires_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user              User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  algorithmProposal AlgorithmProposal?
+
+  @@index([tenantId, status, priority])
+  @@index([userId, createdAt])
+  @@index([status, queuedAt])
+  @@map("agent_runs")
+}
+
+model AlgorithmProposal {
+  id                String                    @id @default(uuid()) @map("algorithm_proposal_id")
+  tenantId          String                    @map("tenant_id")
+  agentRunId        String                    @unique @map("agent_run_id")
+  proposerId        String                    @map("proposer_id")
+  reviewerId        String?                   @map("reviewer_id")
+  status            String                    @default("draft")
+  version           Int                       @default(1)
+  workflowVersion   String                    @map("workflow_version")
+  policyVersion     String                    @map("policy_version")
+  cohortCriteria    Json                      @map("cohort_criteria")
+  parameterDiff     Json                      @map("parameter_diff")
+  hypothesis        String
+  rationale         String
+  primaryMetric     String                    @map("primary_metric")
+  guardrailMetrics  Json                      @map("guardrail_metrics")
+  sampleSize        Int                       @map("sample_size")
+  evidenceRef       String                    @map("evidence_ref")
+  canaryPercentage  Int                       @default(5) @map("canary_percentage")
+  rollbackCondition String                    @map("rollback_condition")
+  submittedAt       DateTime?                 @map("submitted_at")
+  reviewedAt        DateTime?                 @map("reviewed_at")
+  canaryStartedAt   DateTime?                 @map("canary_started_at")
+  activatedAt       DateTime?                 @map("activated_at")
+  rolledBackAt      DateTime?                 @map("rolled_back_at")
+  expiresAt         DateTime?                 @map("expires_at")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agentRun          AgentRun                  @relation(fields: [agentRunId], references: [id], onDelete: Restrict)
+  actions           AlgorithmProposalAction[]
+
+  @@index([tenantId, status, updatedAt])
+  @@index([proposerId, createdAt])
+  @@map("algorithm_proposals")
+}
+
+model AlgorithmProposalAction {
+  id         String            @id @default(uuid()) @map("algorithm_proposal_action_id")
+  proposalId String            @map("proposal_id")
+  tenantId   String            @map("tenant_id")
+  actorId    String            @map("actor_id")
+  action     String
+  fromStatus String?           @map("from_status")
+  toStatus   String            @map("to_status")
+  version    Int
+  reason     String?
+  metadata   Json?
+  createdAt  DateTime          @default(now()) @map("created_at")
+  proposal   AlgorithmProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("algorithm_proposal_actions")
+}
+
+model AuditEvent {
+  id           String   @id @default(uuid()) @map("audit_event_id")
+  tenantId     String?  @map("tenant_id")
+  userId       String?  @map("user_id")
+  requestId    String?  @map("request_id")
+  traceId      String?  @map("trace_id")
+  action       String
+  resourceType String?  @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  outcome      String
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_events")
+}
+
+model OutboxEvent {
+  id            String    @id @default(uuid()) @map("outbox_event_id")
+  tenantId      String?   @map("tenant_id")
+  aggregateType String    @map("aggregate_type")
+  aggregateId   String    @map("aggregate_id")
+  eventType     String    @map("event_type")
+  schemaVersion Int       @default(1) @map("schema_version")
+  payload       Json
+  status        String    @default("pending")
+  attempts      Int       @default(0)
+  availableAt   DateTime  @default(now()) @map("available_at")
+  publishedAt   DateTime? @map("published_at")
+  lastError     String?   @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([status, availableAt])
+  @@index([aggregateType, aggregateId])
+  @@index([eventType, createdAt])
+  @@map("outbox_events")
+}

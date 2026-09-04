@@ -1,0 +1,91 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.loading-container {
+  @include flex-center;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-xl;
+
+  &.small {
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+    }
+  }
+
+  &.medium {
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+    }
+  }
+
+  &.large {
+    .loading-spinner {
+      width: 80px;
+      height: 80px;
+    }
+  }
+}
+
+.loading-spinner {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  animation: spinner-rotate 1.2s linear infinite;
+}
+
+.spinner-circle {
+  position: absolute;
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  background: $primary-color;
+  animation: spinner-bounce 1.2s ease-in-out infinite;
+
+  &:nth-child(1) {
+    top: 0;
+    left: 0;
+    animation-delay: 0s;
+  }
+
+  &:nth-child(2) {
+    top: 0;
+    right: 0;
+    animation-delay: 0.3s;
+  }
+
+  &:nth-child(3) {
+    bottom: 0;
+    right: 0;
+    animation-delay: 0.6s;
+  }
+
+  &:nth-child(4) {
+    bottom: 0;
+    left: 0;
+    animation-delay: 0.9s;
+  }
+}
+
+@keyframes spinner-rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinner-bounce {
+  0%, 100% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+
+.loading-text {
+  font-size: $font-size-md;
+  color: $text-secondary;
+  margin-top: $spacing-md;
+}

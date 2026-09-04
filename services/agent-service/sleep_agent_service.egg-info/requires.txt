@@ -1,0 +1,16 @@
+fastapi<1,>=0.115
+uvicorn[standard]<1,>=0.34
+pydantic<3,>=2.10
+httpx<1,>=0.28
+openai<2,>=1.68
+langgraph<2,>=1.2.10
+langchain-core<2,>=1.2.22
+langsmith<1,>=0.8.18
+temporalio<2,>=1.10
+psycopg[binary]<4,>=3.2
+psycopg-pool<4,>=3.2
+
+[test]
+pytest<10,>=8
+pytest-asyncio<2,>=0.25
+httpx<1,>=0.28

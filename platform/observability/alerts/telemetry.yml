@@ -1,0 +1,63 @@
+groups:
+  - name: telemetry-reliability
+    interval: 15s
+    rules:
+      - alert: TelemetryDlqPublishFailure
+        expr: increase(sleep_realtime_events_total{job="realtime-worker",outcome="dlq_publish_failed"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: page
+          service: realtime-worker
+          owner: data-platform
+        annotations:
+          summary: Realtime Worker cannot persist poison events to the DLQ
+          description: Source offsets remain intentionally uncommitted; Kafka lag can grow until DLQ publication recovers.
+          runbook: 202607worklog/operations/runbooks/telemetry-dlq-blocked.md
+
+      - alert: RealtimeWorkerProcessingBlocked
+        expr: (sleep_realtime_ready{job="realtime-worker"} == 0) and on(job, instance) (up{job="realtime-worker"} == 1)
+        for: 2m
+        labels:
+          severity: page
+          service: realtime-worker
+          owner: data-platform
+        annotations:
+          summary: Realtime Worker is alive but cannot complete a Kafka batch
+          description: Check DLQ publication, ClickHouse writes, Kafka group state, and the first failing source partition.
+          runbook: 202607worklog/operations/runbooks/telemetry-dlq-blocked.md
+
+      - alert: RealtimeWorkerSchemaRegistryFailure
+        expr: increase(sleep_realtime_schema_resolutions_total{job="realtime-worker",outcome="registry_failure"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: page
+          service: realtime-worker
+          owner: data-platform
+        annotations:
+          summary: Realtime Worker cannot resolve an uncached event Schema
+          description: Cached Schema versions may continue, but a partition containing a new version remains uncommitted until Registry access recovers.
+          runbook: 202607worklog/operations/runbooks/schema-registry-unavailable.md
+
+      - alert: RealtimeWorkerPartitionCoverageLow
+        expr: sum(sleep_realtime_consumer_assigned_partitions{job="realtime-worker"}) < 12
+        for: 2m
+        labels:
+          severity: page
+          service: realtime-worker
+          owner: data-platform
+        annotations:
+          summary: Realtime Worker group does not cover all telemetry partitions
+          description: Expected partition ownership is below 12; verify group membership, failed Pods, Kafka reachability, and whether lag is increasing.
+          runbook: 202607worklog/operations/runbooks/realtime-worker-rebalance.md
+
+      - alert: RealtimeWorkerConsumerGroupChurn
+        expr: sum(increase(sleep_realtime_consumer_group_events_total{job="realtime-worker",event="join"}[10m])) > 6
+        for: 5m
+        labels:
+          severity: ticket
+          service: realtime-worker
+          owner: data-platform
+        annotations:
+          summary: Realtime Worker consumer group is rejoining repeatedly
+          description: Repeated group joins can pause partitions and amplify lag; inspect rollouts, autoscaling, OOM kills, heartbeat delays, and broker connectivity.
+          runbook: 202607worklog/operations/runbooks/realtime-worker-rebalance.md

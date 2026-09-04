@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: temporal
+  namespace: sleep-platform
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temporal-headless
+  namespace: sleep-platform
+  labels:
+    app.kubernetes.io/name: temporal
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: temporal
+  ports:
+    - name: frontend-membership
+      port: 6933
+    - name: history-membership
+      port: 6934
+    - name: matching-membership
+      port: 6935
+    - name: worker-membership
+      port: 6939
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temporal-frontend
+  namespace: sleep-platform
+  labels:
+    app.kubernetes.io/name: temporal
+spec:
+  selector:
+    app.kubernetes.io/name: temporal
+  ports:
+    - name: grpc
+      port: 7233
+      targetPort: grpc

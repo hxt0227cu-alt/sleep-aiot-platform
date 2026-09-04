@@ -1,0 +1,248 @@
+# SLO (Service Level Objective) 定义
+#
+# 定义睡眠监测平台各服务的服务等级目标，
+# 用于监控、告警和验收。
+
+version: "1.0"
+last_updated: "2026-08-01"
+
+# 全局 SLO 配置
+global:
+  error_budget_policy: "consume-alerts"
+  default_window: "30d"
+  alert_templates:
+    fast_burn:
+      error_budget_consumed: "2%"
+      window: "1h"
+    slow_burn:
+      error_budget_consumed: "10%"
+      window: "6h"
+
+# 各服务 SLO
+services:
+  # ============================================================
+  # 后端 API 服务
+  # ============================================================
+  backend-api:
+    description: "后端 REST API 服务"
+    owner: "backend-team"
+    slo:
+      - name: availability
+        description: "API 可用性"
+        target: 99.9
+        window: "30d"
+        metric: "sli_api_availability"
+        error_budget: 0.1
+        alerting:
+          fast_burn:
+            threshold: 2.0
+            window: "1h"
+          slow_burn:
+            threshold: 10.0
+            window: "6h"
+
+      - name: latency-p95
+        description: "API 响应延迟 P95"
+        target: 500
+        unit: "ms"
+        window: "30d"
+        metric: "sli_api_latency_p95"
+        alerting:
+          warning:
+            threshold: 400
+            window: "5m"
+          critical:
+            threshold: 800
+            window: "5m"
+
+      - name: latency-p99
+        description: "API 响应延迟 P99"
+        target: 1000
+        unit: "ms"
+        window: "30d"
+        metric: "sli_api_latency_p99"
+
+  # ============================================================
+  # MQTT Broker (EMQX)
+  # ============================================================
+  mqtt-broker:
+    description: "MQTT 消息代理服务"
+    owner: "iot-team"
+    slo:
+      - name: availability
+        description: "MQTT Broker 可用性"
+        target: 99.95
+        window: "30d"
+        metric: "sli_mqtt_availability"
+        error_budget: 0.05
+
+      - name: message-delivery
+        description: "消息投递成功率"
+        target: 99.9
+        window: "30d"
+        metric: "sli_mqtt_delivery_rate"
+
+      - name: connection-success
+        description: "设备连接成功率"
+        target: 99.5
+        window: "30d"
+        metric: "sli_mqtt_connection_rate"
+
+      - name: latency
+        description: "消息端到端延迟 P95"
+        target: 200
+        unit: "ms"
+        window: "30d"
+        metric: "sli_mqtt_latency_p95"
+
+  # ============================================================
+  # 数据库 (PostgreSQL)
+  # ============================================================
+  postgresql:
+    description: "主数据库服务"
+    owner: "database-team"
+    slo:
+      - name: availability
+        description: "数据库可用性"
+        target: 99.99
+        window: "30d"
+        metric: "sli_pg_availability"
+        error_budget: 0.01
+
+      - name: query-latency-p95
+        description: "查询延迟 P95"
+        target: 100
+        unit: "ms"
+        window: "30d"
+        metric: "sli_pg_query_latency_p95"
+
+      - name: replication-lag
+        description: "主从复制延迟"
+        target: 100
+        unit: "ms"
+        window: "5m"
+        metric: "sli_pg_replication_lag"
+        alerting:
+          warning:
+            threshold: 50
+          critical:
+            threshold: 500
+
+  # ============================================================
+  # 报警服务
+  # ============================================================
+  alarm-service:
+    description: "睡眠报警检测服务"
+    owner: "algorithm-team"
+    slo:
+      - name: detection-accuracy
+        description: "报警检测准确率"
+        target: 95.0
+        unit: "%"
+        window: "7d"
+        metric: "sli_alarm_accuracy"
+        acceptance_threshold: 90.0
+
+      - name: detection-latency
+        description: "报警检测延迟 P95"
+        target: 5000
+        unit: "ms"
+        window: "30d"
+        metric: "sli_alarm_latency_p95"
+
+      - name: false-alarm-rate
+        description: "误报率"
+        target: 5.0
+        unit: "%"
+        window: "7d"
+        metric: "sli_alarm_false_rate"
+        acceptance_threshold: 10.0
+
+  # ============================================================
+  # OTA 服务
+  # ============================================================
+  ota-service:
+    description: "固件 OTA 升级服务"
+    owner: "firmware-team"
+    slo:
+      - name: upgrade-success
+        description: "OTA 升级成功率"
+        target: 98.0
+        unit: "%"
+        window: "30d"
+        metric: "sli_ota_success_rate"
+        acceptance_threshold: 95.0
+
+      - name: rollback-rate
+        description: "OTA 回滚率"
+        target: 2.0
+        unit: "%"
+        window: "30d"
+        metric: "sli_ota_rollback_rate"
+
+  # ============================================================
+  # 数据管道
+  # ============================================================
+  data-pipeline:
+    description: "数据采集与处理管道"
+    owner: "data-team"
+    slo:
+      - name: ingestion-success
+        description: "数据摄入成功率"
+        target: 99.9
+        window: "30d"
+        metric: "sli_ingestion_success"
+
+      - name: processing-latency
+        description: "数据处理延迟 P95"
+        target: 30000
+        unit: "ms"
+        window: "30d"
+        metric: "sli_processing_latency_p95"
+
+      - name: data-loss
+        description: "数据丢失率"
+        target: 0.01
+        unit: "%"
+        window: "30d"
+        metric: "sli_data_loss_rate"
+
+# 错误预算策略
+error_budget_policy:
+  description: "错误预算消耗策略"
+  policies:
+    - level: "0-50%"
+      action: "正常发布"
+      description: "错误预算充足，正常进行发布和变更"
+
+    - level: "50-80%"
+      action: "谨慎发布"
+      description: "错误预算消耗过半，需要审批后发布"
+
+    - level: "80-90%"
+      action: "冻结发布"
+      description: "错误预算即将耗尽，冻结非紧急发布，优先修复稳定性问题"
+
+    - level: "90-100%"
+      action: "紧急修复"
+      description: "错误预算耗尽，仅允许紧急修复，需要管理层审批"
+
+# 验收标准
+acceptance_criteria:
+  description: "生产验收的 SLO 达标要求"
+  required_slos:
+    - service: "backend-api"
+      slo: "availability"
+      min_target: 99.9
+    - service: "mqtt-broker"
+      slo: "availability"
+      min_target: 99.9
+    - service: "postgresql"
+      slo: "availability"
+      min_target: 99.99
+    - service: "alarm-service"
+      slo: "detection-accuracy"
+      min_target: 90.0
+    - service: "ota-service"
+      slo: "upgrade-success"
+      min_target: 95.0

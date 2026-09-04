@@ -1,0 +1,156 @@
+@import '../../../styles/variables.scss';
+@import '../../../styles/mixins.scss';
+
+.alarm-detail-page {
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+.scroll-container {
+  height: 100vh;
+}
+
+.header-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  margin: $spacing-md;
+  display: flex;
+  align-items: center;
+}
+
+.back-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  @include flex-center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.page-title {
+  font-size: $font-size-xl;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.content-section {
+  padding: 0 $spacing-md;
+}
+
+.alarm-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.alarm-header {
+  @include flex-between;
+  margin-bottom: $spacing-md;
+}
+
+.alarm-level {
+  padding: 4px 12px;
+  border-radius: 12px;
+  display: inline-block;
+  width: fit-content;
+
+  &.critical {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+
+  &.warning {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+  }
+
+  &.info {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+  }
+}
+
+.level-text {
+  font-size: $font-size-xs;
+  font-weight: bold;
+  color: white;
+}
+
+.alarm-time {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.alarm-info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.info-row {
+  @include flex-between;
+  padding: $spacing-sm 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.info-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.info-value {
+  font-size: $font-size-md;
+  color: $text-primary;
+  font-weight: 500;
+
+  &.pending {
+    color: $danger-color;
+  }
+}
+
+.alarm-actions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+}
+
+.action-button {
+  flex: 1;
+  padding: $spacing-md $spacing-lg;
+  border-radius: $border-radius-md;
+  text-align: center;
+  font-size: $font-size-md;
+;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &.primary {
+    background: rgba(16, 185, 129, 0.2);
+    color: white;
+  }
+
+  &.danger {
+    background: rgba(239, 68, 68, 0.2);
+    color: white;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.action-text {
+  color: white;
+  font-weight: bold;
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleep.example/schemas/device-telemetry-received.v1.json",
+  "title": "DeviceTelemetryReceivedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventType",
+    "eventId",
+    "traceId",
+    "schemaVersion",
+    "tenantId",
+    "deviceId",
+    "occurredAt",
+    "receivedAt"
+  ],
+  "properties": {
+    "eventType": {"const": "device.telemetry.received"},
+    "eventId": {"type": "string", "format": "uuid"},
+    "traceId": {"type": "string", "format": "uuid"},
+    "schemaVersion": {"const": 1},
+    "tenantId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "deviceId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "occurredAt": {"type": "string", "format": "date-time"},
+    "receivedAt": {"type": "string", "format": "date-time"},
+    "sequence": {"type": "integer", "minimum": 0},
+    "heartRate": {"type": "integer", "minimum": 20, "maximum": 240},
+    "breathingRate": {"type": "integer", "minimum": 2, "maximum": 80},
+    "bodyMovement": {"type": "number", "minimum": 0},
+    "sleepState": {"enum": ["awake", "light", "deep", "rem", "unknown"]},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+  }
+}

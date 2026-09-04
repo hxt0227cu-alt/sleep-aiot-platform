@@ -1,0 +1,57 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.voice-player {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+}
+
+.player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.player-title {
+  font-size: $font-size-md;
+  color: $text-primary;
+  font-weight: bold;
+}
+
+.player-time {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.player-controls {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.control-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.2);
+  @include flex-center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.control-icon {
+  font-size: 24px;
+  color: white;
+}
+
+.progress-slider {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}

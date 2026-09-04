@@ -1,0 +1,147 @@
+# ESP-IDF 生产环境构建配置
+# 适用于 ESP32-S3 量产固件
+# 启用全部安全特性，关闭所有调试接口
+
+# ============================================================
+# 基础配置
+# ============================================================
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_IDF_FIRMWARE_CHIP_ID=0x0009
+
+# ============================================================
+# 安全启动 Secure Boot V2
+# ============================================================
+CONFIG_SECURE_BOOT=y
+CONFIG_SECURE_BOOT_V2_ENABLED=y
+CONFIG_SECURE_BOOT_SIGNING_KEY="secure_boot_signing_key.pem"
+CONFIG_SECURE_BOOT_INSECURE=y
+# 注意：生产环境应设置 CONFIG_SECURE_BOOT_INSECURE=n
+# 此处保留用于开发阶段，量产前必须关闭
+
+# ============================================================
+# Flash 加密
+# ============================================================
+CONFIG_SECURE_FLASH_ENC_ENABLED=y
+CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE=y
+CONFIG_SECURE_FLASH_ENCRYPTION_AES256=y
+CONFIG_SECURE_FLASH_UART_BOOTLOADER_ALLOW_ENC=y
+CONFIG_SECURE_FLASH_UART_BOOTLOADER_ALLOW_DEC=y
+CONFIG_SECURE_FLASH_UART_BOOTLOADER_ALLOW_CACHE=y
+# 生产环境应禁用 UART 下载模式的加密/解密/缓存操作
+# CONFIG_SECURE_FLASH_UART_BOOTLOADER_ALLOW_ENC=n
+# CONFIG_SECURE_FLASH_UART_BOOTLOADER_ALLOW_DEC=n
+# CONFIG_SECURE_FLASH_UART_BOOTLOADER_ALLOW_CACHE=n
+
+# ============================================================
+# 防回滚 Anti-rollback
+# ============================================================
+CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK=y
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+CONFIG_BOOTLOADER_APP_SEC_VER_SIZE_EFUSE_FIELD=32
+# 安全版本号，每次安全更新递增
+CONFIG_BOOTLOADER_APP_SECURE_VERSION=1
+
+# ============================================================
+# 调试接口配置
+# ============================================================
+# 关闭 JTAG 调试接口
+CONFIG_ESP32S3_DISABLE_JTAG=y
+# 关闭 USB 串行/JTAG 控制器
+CONFIG_ESP32S3_USB_OTG_SUPPORT_ENABLED=n
+# 关闭 UART 下载模式（生产环境）
+CONFIG_SECURE_UART_ROM_DL_MODE=n
+# 启用 UART ROM 下载模式的加密
+CONFIG_SECURE_UART_ROM_DL_MODE_ENCRYPTED=y
+
+# ============================================================
+# 日志配置
+# ============================================================
+# 生产环境关闭详细日志
+CONFIG_LOG_DEFAULT_LEVEL_NONE=y
+CONFIG_LOG_DEFAULT_LEVEL=0
+CONFIG_LOG_MAXIMUM_LEVEL=0
+# 关闭日志颜色
+CONFIG_LOG_COLORS=n
+# 关闭系统状态打印
+CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y
+CONFIG_BOOTLOADER_LOG_LEVEL=0
+
+# ============================================================
+# 应用配置
+# ============================================================
+# 应用跟踪关闭
+CONFIG_APPTRACE_ENABLE=n
+# 任务跟踪关闭
+CONFIG_FREERTOS_USE_TRACE_FACILITY=n
+CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=n
+# 核心转储配置（加密存储到 Flash）
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+CONFIG_ESP_COREDUMP_CHECKSUM_CRC32=y
+CONFIG_ESP_COREDUMP_MAX_TASKS_NUM=32
+# 核心转储最大大小（64KB）
+CONFIG_ESP_COREDUMP_STACK_SIZE=0x400
+
+# ============================================================
+# 内存与性能
+# ============================================================
+CONFIG_ESP_SYSTEM_MEMPROT_FEATURE=y
+CONFIG_ESP_SYSTEM_MEMPROT_FEATURE_LOCK=y
+# 启用 SPIRAM（如果使用 PSRAM）
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
+
+# ============================================================
+# 网络安全
+# ============================================================
+CONFIG_ESP_TLS_USING_MBEDTLS=y
+CONFIG_MBEDTLS_HARDWARE_AES=y
+CONFIG_MBEDTLS_HARDWARE_SHA=y
+CONFIG_MBEDTLS_HARDWARE_RSA=y
+CONFIG_MBEDTLS_HARDWARE_ECC=y
+CONFIG_MBEDTLS_HARDWARE_BIGNUM=y
+# 启用证书验证
+CONFIG_ESP_TLS_INSECURE=n
+CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY=n
+
+# ============================================================
+# WiFi 配置
+# ============================================================
+CONFIG_ESP_WIFI_ENABLED=y
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+CONFIG_ESP_WIFI_TX_BUFFER_TYPE=1
+CONFIG_ESP_WIFI_AMPDU_TX_ENABLED=y
+CONFIG_ESP_WIFI_AMPDU_RX_ENABLED=y
+# WiFi NVS 加密
+CONFIG_ESP_WIFI_NVS_ENABLED=y
+
+# ============================================================
+# 功耗管理
+# ============================================================
+CONFIG_PM_ENABLE=y
+CONFIG_PM_DFS_INIT_AUTO=y
+CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+CONFIG_FREERTOS_HZ=1000
+
+# ============================================================
+# 分区表
+# ============================================================
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+
+# ============================================================
+# 编译器优化
+# ============================================================
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_SILENT=y
+CONFIG_COMPILER_OPTIMIZATION_ASSERTION_LEVEL=0
+# 启用栈保护
+CONFIG_COMPILER_STACK_CHECK_MODE_NORM=y
+CONFIG_COMPILER_STACK_CHECK_PROTECT=y
+# 启用 -Werror（生产环境）
+CONFIG_COMPILER_WARN_WRITE_STRINGS=y

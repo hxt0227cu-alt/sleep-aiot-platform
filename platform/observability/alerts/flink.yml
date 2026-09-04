@@ -1,0 +1,52 @@
+groups:
+  - name: flink-streaming-reliability
+    rules:
+      - alert: FlinkCheckpointFailed
+        expr: increase(flink_jobmanager_job_numberOfFailedCheckpoints[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: flink-telemetry-job
+        annotations:
+          summary: Flink checkpoint failures increased
+          runbook: 202607worklog/operations/runbooks/flink-event-time-pipeline.md
+
+      - alert: FlinkCheckpointNotAdvancing
+        expr: changes(flink_jobmanager_job_lastCompletedCheckpointId[1m]) == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: flink-telemetry-job
+        annotations:
+          summary: Flink completed checkpoint ID is not advancing
+          runbook: 202607worklog/operations/runbooks/flink-event-time-pipeline.md
+
+      - alert: FlinkCheckpointDurationHigh
+        expr: flink_jobmanager_job_lastCheckpointDuration > 45000
+        for: 2m
+        labels:
+          severity: warning
+          service: flink-telemetry-job
+        annotations:
+          summary: Flink checkpoint duration is approaching the 60-second timeout
+          runbook: 202607worklog/operations/runbooks/flink-event-time-pipeline.md
+
+      - alert: FlinkJobRestarted
+        expr: increase(flink_jobmanager_job_numRestarts[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          service: flink-telemetry-job
+        annotations:
+          summary: Flink job restarted during the last ten minutes
+          runbook: 202607worklog/operations/runbooks/flink-event-time-pipeline.md
+
+      - alert: FlinkEventTimeLagHigh
+        expr: max by (job_name) (flink_taskmanager_job_task_operator_currentEmitEventTimeLag) > 300000
+        for: 5m
+        labels:
+          severity: warning
+          service: flink-telemetry-job
+        annotations:
+          summary: Flink source event-time lag exceeds five minutes
+          runbook: 202607worklog/operations/runbooks/flink-event-time-pipeline.md

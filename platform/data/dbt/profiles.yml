@@ -1,0 +1,13 @@
+sleep_clickhouse:
+  target: local
+  outputs:
+    local:
+      type: clickhouse
+      host: "{{ env_var('CLICKHOUSE_HOST', 'clickhouse') }}"
+      port: 8123
+      user: "{{ env_var('CLICKHOUSE_USER', 'sleep') }}"
+      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
+      schema: default
+      secure: false
+      verify: false
+      threads: 2

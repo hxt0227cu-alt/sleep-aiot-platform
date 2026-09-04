@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal
+  namespace: workflow
+  labels:
+    app: temporal
+    component: workflow-engine
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: temporal
+  template:
+    metadata:
+      labels:
+        app: temporal
+    spec:
+      serviceAccountName: temporal
+      containers:
+        - name: temporal
+          image: temporalio/server:1.22.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7233
+              name: grpc
+            - containerPort: 7234
+              name: grpc-internal
+            - containerPort: 9090
+              name: metrics
+          env:
+            - name: TEMPORAL_STORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: temporal-db-secret
+                  key: password
+            - name: TEMPORAL_VISIBILITY_STORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: temporal-db-secret
+                  key: password
+            - name: ENABLE_ES
+              value: "false"
+            - name: DB
+              value: postgres12
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_HOST
+              value: postgres.database.svc.cluster.local
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: temporal-db-secret
+                  key: username
+          volumeMounts:
+            - name: temporal-config
+              mountPath: /etc/temporal/config
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          readinessProbe:
+            tcpSocket:
+              port: 7233
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 7233
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: temporal-config
+          configMap:
+            name: temporal-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temporal
+  namespace: workflow
+spec:
+  type: ClusterIP
+  selector:
+    app: temporal
+  ports:
+    - port: 7233
+      targetPort: 7233
+      name: grpc
+    - port: 9090
+      targetPort: 9090
+      name: metrics
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: temporal-pdb
+  namespace: workflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: temporal

@@ -1,0 +1,72 @@
+services:
+  timescaledb:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres-pgvector
+    image: sleep-lamp-timescaledb-pgvector:2.17.2-pg16
+    container_name: sleep-lamp-timescaledb
+    environment:
+      POSTGRES_USER: hxt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: sleep_lamp
+      TZ: Asia/Shanghai
+    ports:
+      - 5433:5432
+    volumes:
+      - ./data/timescaledb:/var/lib/postgresql/data
+    networks:
+      - sleep-lamp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hxt -d sleep_lamp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sleep-lamp-redis
+    ports:
+      - 6380:6379
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - sleep-lamp-network
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  emqx:
+    image: emqx/emqx:5.8.6
+    container_name: sleep-lamp-emqx
+    environment:
+      EMQX_NODE_NAME: emqx@127.0.0.1
+      EMQX_NODE_COOKIE: sleep_lamp_secret_cookie
+      EMQX_DASHBOARD__DEFAULT_USERNAME: hxt
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD:?Set EMQX_DASHBOARD_PASSWORD in .env}
+    ports:
+      - 1883:1883
+      - 8883:8883
+      - 8083:8083
+      - 8084:8084
+      - 18083:18083
+    volumes:
+      - ./data/emqx:/opt/emqx/data
+    networks:
+      - sleep-lamp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sleep-lamp-network:
+    driver: bridge

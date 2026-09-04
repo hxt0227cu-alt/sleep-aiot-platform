@@ -1,0 +1,159 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.device-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  transition: all $transition-normal;
+  border: 2px solid transparent;
+
+  &.active {
+    border-color: $primary-color;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.device-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  @include flex-center;
+  flex-shrink: 0;
+}
+
+.device-icon .icon {
+  font-size: 30px;
+}
+
+.device-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.device-name {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.device-id {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.device-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  flex-shrink: 0;
+
+  &.online {
+    background: rgba(16, 185, 129, 0.2);
+  }
+
+  &.offline {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.status-text {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+
+  .device-status.online & {
+    color: $success-color;
+  }
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-md;
+}
+
+.info-row {
+  @include flex-between;
+}
+
+.info-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.info-value {
+  font-size: $font-size-md;
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.card-footer {
+  @include flex-between;
+  align-items: center;
+}
+
+.footer-left {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+
+  &.online {
+    background: rgba(16, 185, 129, 0.2);
+  }
+
+  &.current {
+    background: rgba(245, 158, 11, 0.2);
+  }
+}
+
+.badge-text {
+  font-size: $font-size-xs;
+  font-weight: 500;
+  color: $text-secondary;
+
+  .status-badge.online & {
+    color: $success-color;
+  }
+
+  .status-badge.current & {
+    color: $primary-color;
+  }
+}
+
+.unbind-button {
+  padding: $spacing-xs $spacing-md;
+  background: rgba(239, 68, 68, 0.2);
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.unbind-text {
+  font-size: $font-size-sm;
+  color: #ef4444;
+  font-weight: 500;
+}

@@ -1,0 +1,22 @@
+model_list:
+  - model_name: qwen-primary
+    litellm_params:
+      model: openai/qwen3-8b-awq
+      api_base: os.environ/VLLM_BASE_URL
+      api_key: os.environ/VLLM_API_KEY
+  - model_name: qwen-fallback
+    litellm_params:
+      model: os.environ/FALLBACK_MODEL
+      api_base: os.environ/FALLBACK_BASE_URL
+      api_key: os.environ/FALLBACK_API_KEY
+
+router_settings:
+  routing_strategy: least-busy
+  num_retries: 1
+  timeout: 45
+  allowed_fails: 3
+  cooldown_time: 30
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+

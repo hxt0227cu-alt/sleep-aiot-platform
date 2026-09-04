@@ -1,0 +1,10 @@
+# Default governance owner. Replace with team aliases when the repository moves to an organization.
+* @hxt02
+
+/src/ @hxt02
+/miniprogram/ @hxt02
+/backend/ @hxt02
+/firmware/ @hxt02
+/services/ @hxt02
+/platform/ @hxt02
+/.github/ @hxt02

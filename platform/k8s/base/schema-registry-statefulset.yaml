@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: schema-registry
+  namespace: messaging
+  labels:
+    app: schema-registry
+    component: schema-management
+spec:
+  serviceName: schema-registry-headless
+  replicas: 2
+  selector:
+    matchLabels:
+      app: schema-registry
+  template:
+    metadata:
+      labels:
+        app: schema-registry
+    spec:
+      containers:
+        - name: schema-registry
+          image: confluentinc/cp-schema-registry:7.5.3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+              value: "kafka-0.kafka-headless:9092,kafka-1.kafka-headless:9092,kafka-2.kafka-headless:9092"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL
+              value: "SASL_SSL"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM
+              value: "SCRAM-SHA-512"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG
+              valueFrom:
+                secretKeyRef:
+                  name: schema-registry-kafka-secret
+                  key: sasl-jaas-config
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION
+              value: /etc/kafka/secrets/kafka.truststore.jks
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-tls
+                  key: truststore-password
+            - name: SCHEMA_REGISTRY_LISTENERS
+              value: "http://0.0.0.0:8081"
+            - name: SCHEMA_REGISTRY_AVRO_COMPATIBILITY_LEVEL
+              value: "backward"
+            - name: SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_ORIGIN
+              value: "*"
+            - name: SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_METHODS
+              value: "GET,POST,PUT,DELETE,OPTIONS"
+            - name: SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_HEADERS
+              value: "Content-Type,Authorization"
+          volumeMounts:
+            - name: kafka-secrets
+              mountPath: /etc/kafka/secrets
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /subjects
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /subjects
+              port: 8081
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: kafka-secrets
+          secret:
+            secretName: kafka-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schema-registry
+  namespace: messaging
+spec:
+  type: ClusterIP
+  selector:
+    app: schema-registry
+  ports:
+    - port: 8081
+      targetPort: 8081
+      name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schema-registry-headless
+  namespace: messaging
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: schema-registry
+  ports:
+    - port: 8081
+      name: http

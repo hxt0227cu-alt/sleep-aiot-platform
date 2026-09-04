@@ -1,0 +1,30 @@
+{
+  "title": "Sleep Platform Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP request rate",
+      "targets": [
+        {"expr": "sum(rate(sleep_http_requests_total[5m])) by (route)", "legendFormat": "{{route}}"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP P95 latency",
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum(rate(sleep_http_request_duration_seconds_bucket[5m])) by (le, route))", "legendFormat": "{{route}}"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "type": "stat",
+      "title": "Dependency readiness",
+      "targets": [{"expr": "min(sleep_dependency_health)"}],
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 8}
+    }
+  ]
+}
+

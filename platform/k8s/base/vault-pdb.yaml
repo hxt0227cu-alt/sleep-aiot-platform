@@ -1,0 +1,29 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vault-pdb
+  namespace: vault
+  labels:
+    app: vault
+    component: secret-management
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: vault
+      component: server
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vault-agent-injector-pdb
+  namespace: vault
+  labels:
+    app: vault
+    component: agent-injector
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: vault
+      component: agent-injector

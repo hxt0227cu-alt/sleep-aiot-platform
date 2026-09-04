@@ -1,0 +1,39 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agent-service
+  namespace: sleep-platform
+  labels:
+    app.kubernetes.io/name: agent-service
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: agent-service.availability
+      rules:
+        - alert: AgentServiceTargetAbsent
+          expr: absent(up{job="agent-service"})
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Agent Service has no Prometheus target"
+            description: "Check the ServiceMonitor selector, NetworkPolicy, and Pod readiness."
+        - alert: AgentServiceQueueSaturated
+          expr: sleep_agent_queue_depth > 8000
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Agent admission queue is above 80%"
+            description: "Pause nonessential Agent traffic and inspect model latency or provider throttling."
+        - alert: AgentServiceModelFailureRateHigh
+          expr: >-
+            rate(sleep_agent_model_calls_total{outcome="failure"}[10m])
+            / clamp_min(rate(sleep_agent_model_calls_total{outcome=~"success|failure"}[10m]), 0.001)
+            > 0.2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Agent model failure rate exceeds 20%"
+            description: "Check Bailian quota, latency, circuit breaker state, and fallback volume."

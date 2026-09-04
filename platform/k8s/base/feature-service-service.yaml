@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: feature-service
+  namespace: sleep-platform
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: feature-service
+  namespace: sleep-platform
+  labels:
+    app.kubernetes.io/name: feature-service
+spec:
+  selector:
+    app.kubernetes.io/name: feature-service
+  ports:
+    - name: http
+      port: 8101
+      targetPort: http

@@ -1,0 +1,48 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.empty-state {
+  @include flex-center;
+  flex-direction: column;
+  gap: $spacing-lg;
+  padding: $spacing-xl;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: $spacing-md;
+}
+
+.empty-title {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.empty-description {
+  font-size: $font-size-md;
+  color: $text-secondary;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+}
+
+.empty-action {
+  display: inline-block;
+  padding: $spacing-md $spacing-xl;
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: $border-radius-md;
+  color: white;
+  font-size: $font-size-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.action-text {
+  color: white;
+  font-weight: bold;
+}

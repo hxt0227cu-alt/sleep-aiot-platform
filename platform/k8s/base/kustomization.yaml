@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: sleep-platform
+resources:
+  - namespace.yaml
+  - backend-service.yaml
+  - backend-deployment.yaml
+  - backend-migration-job.yaml
+  - backend-autoscaling.yaml
+  - backend-pdb.yaml
+  - agent-service-service.yaml
+  - agent-service-deployment.yaml
+  - agent-service-pdb.yaml
+  - feature-service-service.yaml
+  - feature-service-deployment.yaml
+  - feature-service-pdb.yaml
+  - temporal-service.yaml
+  - temporal-deployment.yaml
+  - temporal-pdb.yaml
+  - network-policy.yaml
+  - postgres-backup-pvc.yaml
+  - postgres-backup-configmap.yaml
+  - postgres-backup-cronjob.yaml
+  - backend-servicemonitor.yaml
+  - backend-prometheusrule.yaml
+  - agent-service-servicemonitor.yaml
+  - agent-service-prometheusrule.yaml

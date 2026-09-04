@@ -1,0 +1,110 @@
+# OTA 灰度发布策略配置
+#
+# 功能：定义固件 OTA 升级的灰度发布策略，
+# 按设备批次、地区、硬件版本逐步推送。
+
+version: "1.0"
+
+# 灰度阶段定义
+phases:
+  - name: canary
+    description: "金丝雀阶段 - 内部测试设备"
+    percentage: 1
+    delay_hours: 24
+    criteria:
+      success_rate_min: 99.0
+      rollback_rate_max: 1.0
+      crash_rate_max: 0.1
+    device_filters:
+      - field: device_type
+        operator: in
+        values: ["internal-test", "qa"]
+      - field: tenant_id
+        operator: in
+        values: ["internal-001"]
+
+  - name: beta
+    description: "Beta 阶段 - 早期用户"
+    percentage: 10
+    delay_hours: 48
+    criteria:
+      success_rate_min: 98.0
+      rollback_rate_max: 2.0
+      crash_rate_max: 0.5
+    device_filters:
+      - field: beta_program
+        operator: equals
+        value: true
+
+  - name: gradual-25
+    description: "逐步放量 25%"
+    percentage: 25
+    delay_hours: 24
+    criteria:
+      success_rate_min: 97.0
+      rollback_rate_max: 3.0
+
+  - name: gradual-50
+    description: "逐步放量 50%"
+    percentage: 50
+    delay_hours: 24
+    criteria:
+      success_rate_min: 96.0
+      rollback_rate_max: 5.0
+
+  - name: full
+    description: "全量发布"
+    percentage: 100
+    delay_hours: 0
+    criteria:
+      success_rate_min: 95.0
+
+# 自动回滚配置
+auto_rollback:
+  enabled: true
+  triggers:
+    - metric: crash_rate
+      threshold: 5.0
+      window_minutes: 30
+    - metric: rollback_rate
+      threshold: 10.0
+      window_minutes: 60
+    - metric: ota_failure_rate
+      threshold: 15.0
+      window_minutes: 30
+  action: automatic_rollback
+  notification:
+    - channel: feishu
+      webhook: "${OTA_ROLLBACK_WEBHOOK}"
+    - channel: email
+      recipients: ["ota-team@example.com"]
+
+# 设备批次配置
+device_batches:
+  - batch_id: batch-2026q1-a
+    hardware_version: "hw-1.0"
+    region: cn-south
+    device_count: 5000
+  - batch_id: batch-2026q1-b
+    hardware_version: "hw-1.1"
+    region: cn-east
+    device_count: 8000
+
+# 升级窗口配置
+upgrade_window:
+  enabled: true
+  timezone: "Asia/Shanghai"
+  windows:
+    - days: [monday, tuesday, wednesday, thursday, sunday]
+      start: "02:00"
+      end: "06:00"
+    - days: [friday, saturday]
+      enabled: false  # 周末不推送
+
+# 网络条件配置
+network_conditions:
+  min_wifi_signal: -75  # dBm
+  min_battery_level: 30  # %
+  require_charging: false
+  max_download_retries: 3
+  download_timeout_seconds: 300

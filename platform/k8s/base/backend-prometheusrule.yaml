@@ -1,0 +1,209 @@
+# 告警规则（ADR-019）。
+#
+# 原则：每条告警都必须对应一个"人需要做点什么"的动作。
+# 只做仪表盘不做告警的指标，等于没有可观测性 —— 没人会盯着图看。
+#
+# severity 约定：
+#   critical = 影响用户，需立即介入（呼叫）
+#   warning  = 有劣化趋势或冗余降级，工作时间处理
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: backend-api
+  namespace: sleep-platform
+  labels:
+    app.kubernetes.io/name: backend-api
+    release: kube-prometheus-stack
+spec:
+  groups:
+    # ---------------------------------------------------------------
+    # 1. 抓取链路自身的健康 —— 防止"指标看起来正常，其实是没数据"
+    # ---------------------------------------------------------------
+    - name: backend-api.scrape
+      rules:
+        - alert: BackendApiTargetDown
+          expr: up{job="backend-api"} == 0
+          for: 3m
+          labels:
+            severity: critical
+          annotations:
+            summary: "backend-api 抓取目标不可达 ({{ $labels.instance }})"
+            description: >-
+              Prometheus 无法抓取该副本。常见原因按概率排序：
+              (1) NetworkPolicy 未放行 monitoring 命名空间；
+              (2) Pod 未就绪或正在滚动更新；
+              (3) /api/metrics 路径变更（注意全局前缀 api）。
+            runbook: "platform/postgres/backup/README.md 同级的 observability 章节；先 kubectl exec 到 monitoring 侧 curl 验证连通性"
+
+        - alert: BackendApiMetricsAbsent
+          # 整个 job 一个 target 都没有 —— ServiceMonitor 没被 Prometheus 选中时就是这个表现，
+          # 此时 up{} 连时间序列都不存在，上一条告警不会触发，必须用 absent 兜底。
+          expr: absent(up{job="backend-api"})
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "backend-api 没有任何抓取目标"
+            description: >-
+              ServiceMonitor 可能未被 Prometheus 实例的 serviceMonitorSelector 匹配，
+              或 label release 与集群约定不一致。这是"配置了监控但完全没生效"的静默失败。
+
+    # ---------------------------------------------------------------
+    # 2. 用户可见的服务质量
+    # ---------------------------------------------------------------
+    - name: backend-api.slo
+      rules:
+        - alert: BackendApiHighErrorRate
+          expr: >-
+            sum(rate(sleep_http_requests_total{status_code=~"5.."}[5m]))
+            /
+            sum(rate(sleep_http_requests_total[5m]))
+            > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "backend-api 5xx 比例超过 5%"
+            description: "当前 5xx 比例 {{ $value | humanizePercentage }}，持续 5 分钟。"
+
+        - alert: BackendApiHighLatencyP95
+          expr: >-
+            histogram_quantile(
+              0.95,
+              sum(rate(sleep_http_request_duration_seconds_bucket[5m])) by (le)
+            ) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "backend-api P95 延迟超过 1s"
+            description: "当前 P95 = {{ $value }}s。优先查 dependency 延迟与 LLM 调用耗时。"
+
+        - alert: BackendApiLlmFailureRate
+          expr: >-
+            sum(rate(sleep_llm_requests_total{outcome!="success"}[10m]))
+            /
+            sum(rate(sleep_llm_requests_total[10m]))
+            > 0.2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "LLM 调用失败率超过 20%"
+            description: >-
+              上游模型服务可能限流或不可用。确认降级路径是否生效
+              （助手功能应降级而非拖垮整个请求链路）。
+
+    # ---------------------------------------------------------------
+    # 3. 依赖与横向扩展基础设施（ADR-012/014/015 的运行时证据）
+    # ---------------------------------------------------------------
+    - name: backend-api.dependencies
+      rules:
+        - alert: BackendApiDependencyDown
+          expr: sleep_dependency_health == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "依赖 {{ $labels.dependency }} 不可用"
+            description: >-
+              readiness 探针已判定该依赖不可用，Pod 会被摘出 Service。
+              若三副本同时命中，服务将完全不可用。
+
+        - alert: BackendApiMqttDisconnected
+          expr: sleep_mqtt_connected == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "MQTT 连接断开 ({{ $labels.instance }})"
+            description: >-
+              该副本无法收发设备消息。使用共享订阅时，断开的副本会把负载
+              转移给其余副本，需确认剩余副本能否承接。
+
+        - alert: BackendApiWsConnectionBudgetHigh
+          # 把 ADR-012 的连接预算公式变成可告警的量，而不是文档里的一个数字。
+          expr: sleep_ws_connection_budget_ratio > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "WS 连接数达到副本预算的 {{ $value | humanizePercentage }}"
+            description: >-
+              WebSocket 连接是副本本地状态，HPA 基于 CPU 扩容不会迁移既有连接。
+              接近预算意味着新连接可能被拒绝，需提前扩容或调高单副本预算。
+
+        - alert: BackendApiWsConnectionBudgetCritical
+          expr: sleep_ws_connection_budget_ratio > 0.95
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "WS 连接数即将耗尽副本预算 ({{ $labels.instance }})"
+
+        - alert: BackendApiFanoutPublishFailing
+          expr: rate(sleep_fanout_publish_failures_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "跨副本实时扇出发布失败 ({{ $labels.kind }})"
+            description: >-
+              Redis Pub/Sub 发布失败意味着连接在其他副本上的客户端收不到推送。
+              故障是"部分用户静默收不到数据"，不会体现在 HTTP 错误率上。
+
+        - alert: BackendApiLeaderLockStarved
+          # 有人在尝试抢锁，但 30 分钟内没有任何副本抢到 —— 通常是 Redis 异常
+          # 或锁被持有后未释放。表现为定时任务整体停摆，且无任何报错。
+          expr: >-
+            sum(increase(sleep_leader_lock_runs_total{outcome="acquired"}[30m])) == 0
+            and
+            sum(increase(sleep_leader_lock_runs_total[30m])) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "定时任务领导者锁长期无人获得"
+            description: "周期性任务（如设备在线巡检）可能已停止执行。检查 Redis 可用性与锁 TTL。"
+
+    # ---------------------------------------------------------------
+    # 4. 数据保护（ADR-018 的运行时证据）
+    # 依赖 kube-state-metrics；未安装时这些规则不会产生序列，
+    # 由 BackupJobMetricsAbsent 兜底提示。
+    # ---------------------------------------------------------------
+    - name: backend-api.data-protection
+      rules:
+        - alert: PostgresBackupJobFailed
+          expr: kube_job_status_failed{namespace="sleep-platform", job_name=~"postgres-backup.*"} > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PostgreSQL 备份任务失败"
+            description: "备份失败会直接抬高 RPO。查看 Job 日志并手动补一次备份。"
+
+        - alert: PostgresBackupStale
+          # 每日 02:00 执行，26h 未成功即视为异常（留 2h 容错）。
+          expr: >-
+            time() - max(kube_cronjob_status_last_successful_time{
+              namespace="sleep-platform", cronjob="postgres-backup"
+            }) > 93600
+          for: 30m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PostgreSQL 已超过 26 小时没有成功备份"
+            description: >-
+              当前采用逻辑全量备份，RPO 等于备份间隔。备份停摆意味着
+              RPO 持续恶化，且故障时可能丢失一天以上数据。
+
+        - alert: PostgresBackupMetricsAbsent
+          expr: absent(kube_cronjob_status_last_successful_time{namespace="sleep-platform", cronjob="postgres-backup"})
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "拿不到备份 CronJob 的状态指标"
+            description: >-
+              可能未安装 kube-state-metrics，或 CronJob 未部署。
+              在补齐之前，备份处于"无人监督"状态。

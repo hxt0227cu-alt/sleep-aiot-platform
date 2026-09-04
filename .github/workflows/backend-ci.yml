@@ -1,0 +1,223 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: timescale/timescaledb:2.17.2-pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sleep_monitor_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      emqx:
+        image: emqx/emqx:5.8.4
+        ports:
+          - 1883:1883
+        options: >-
+          --health-cmd "emqx ctl status"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sleep_monitor_test
+        run: pnpm exec prisma generate
+
+      - name: Prepare test database
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sleep_monitor_test
+        run: |
+          echo "CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS timescaledb;" | pnpm exec prisma db execute --stdin
+          pnpm exec prisma db push --skip-generate
+
+      # Lint 棘轮门禁（ADR-020）。
+      # 直接跑 `pnpm run lint` 在存量代码上有 1100+ 个 type-safety error，
+      # 这一步会永远失败，导致它下面的类型检查、测试、构建、镜像签名从来没执行过。
+      # 棘轮改为：新文件必须零错误、存量文件错误数只能下降，于是门禁今天就是绿的
+      # 并且真的会拦住新债务。存量债务记录在 backend/lint-baseline.json。
+      - name: Run linter (ratchet)
+        working-directory: ./backend
+        run: pnpm run lint:ci
+
+      - name: Run type check
+        working-directory: ./backend
+        run: pnpm run type-check
+
+      - name: Ensure postgresql-client (pg_dump / pg_restore)
+        run: command -v pg_dump >/dev/null 2>&1 || (sudo apt-get update -y && sudo apt-get install -y postgresql-client)
+
+      - name: Run tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sleep_monitor_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_URL: redis://localhost:6379
+          MQTT_URL: mqtt://localhost:1883
+          JWT_SECRET: test-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+        run: pnpm run test
+
+      - name: Build
+        working-directory: ./backend
+        run: pnpm run build
+
+  # 平台清单门禁（ADR-019）。
+  # 目的：让 K8s 清单与告警规则也成为"被验证的产物"，而不是只被人眼 review。
+  # 告警规则写错 PromQL 时不会有任何运行时报错，只会永远不触发 —— 必须在 CI 拦住。
+  platform-manifests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kustomize
+        run: |
+          if ! command -v kustomize >/dev/null 2>&1; then
+            curl -sS "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+            sudo mv kustomize /usr/local/bin/
+          fi
+          kustomize version
+
+      - name: Render kustomize base
+        run: |
+          kustomize build platform/k8s/base > /tmp/rendered.yaml
+          test -s /tmp/rendered.yaml
+          echo "rendered kinds:"
+          grep -E '^kind:' /tmp/rendered.yaml | sort | uniq -c
+
+      - name: Reject mutable image tags
+        run: |
+          if grep -nE 'image:[[:space:]]*[^[:space:]]+:latest' /tmp/rendered.yaml; then
+            echo "::error::found a mutable :latest image tag in rendered manifests"
+            exit 1
+          fi
+
+      - name: Assert NetworkPolicy allows Prometheus scraping
+        # 回归保护：这条规则缺失时 /api/metrics 会被 default-deny 静默丢弃，
+        # 表现为 target 永远 down。本轮修复的正是这个缺陷。
+        run: |
+          grep -q 'kubernetes.io/metadata.name: monitoring' platform/k8s/base/network-policy.yaml \
+            || { echo "::error::NetworkPolicy no longer allows the monitoring namespace"; exit 1; }
+
+      - name: Install promtool
+        run: |
+          PROM_VERSION=2.54.1
+          curl -sSL -o /tmp/prom.tar.gz \
+            "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz"
+          tar -xzf /tmp/prom.tar.gz -C /tmp
+          sudo install "/tmp/prometheus-${PROM_VERSION}.linux-amd64/promtool" /usr/local/bin/promtool
+          promtool --version
+
+      - name: Validate alert rules with promtool
+        run: |
+          python3 -c "import yaml; d=yaml.safe_load(open('platform/k8s/base/backend-prometheusrule.yaml')); yaml.safe_dump({'groups': d['spec']['groups']}, open('/tmp/rules.yaml','w'), sort_keys=False, allow_unicode=True)"
+          promtool check rules /tmp/rules.yaml
+
+  build-and-push:
+    needs: [test, platform-manifests]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push immutable image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: sleep-monitor/backend:${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=registry,ref=sleep-monitor/backend:buildcache
+          cache-to: type=registry,ref=sleep-monitor/backend:buildcache,mode=max
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image by digest
+        run: cosign sign --yes sleep-monitor/backend@${{ steps.build.outputs.digest }}
+
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: staging
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy immutable image to staging
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/sleep-monitor
+            IMAGE_TAG=${{ github.sha }} docker compose pull backend
+            IMAGE_TAG=${{ github.sha }} docker compose up -d --no-deps backend
+            curl --fail --retry 12 --retry-delay 5 http://127.0.0.1:3000/api/health/ready

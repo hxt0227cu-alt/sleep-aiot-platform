@@ -1,0 +1,18 @@
+# 本地开发用 PostgreSQL 镜像：TimescaleDB + pgvector
+#
+# 背景：项目 RAG 依赖 pgvector（`knowledge_chunks.embedding` 为 vector 类型，
+# baseline 迁移含 `CREATE EXTENSION IF NOT EXISTS vector`），但
+# timescale/timescaledb 官方镜像不含 pgvector 扩展，直接 docker compose up
+# 后 `prisma migrate deploy` 会在 baseline 迁移失败。
+# 本镜像在官方 TimescaleDB 基础上补充 pgvector 扩展，仅用于本地/CI 基础设施；
+# 托管环境（如阿里云 RDS PG17）由云平台提供扩展，无需本镜像。
+#
+# 注意：timescale/timescaledb 2.17.x pg16 镜像基于 Debian bookworm，
+# 其 apt 仓库提供 postgresql-16-pgvector（pgvector 1.4.x，支持 <=> 余弦距离）。
+FROM timescale/timescaledb:2.17.2-pg16
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-16-pgvector \
+    && rm -rf /var/lib/apt/lists/*
+
+# 保持官方镜像默认 entrypoint（/docker-entrypoint-initdb.d 机制不受影响）

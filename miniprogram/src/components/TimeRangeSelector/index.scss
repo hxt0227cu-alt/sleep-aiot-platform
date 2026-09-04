@@ -1,0 +1,56 @@
+.time-range-selector {
+  width: 100%;
+  margin-bottom: 16px;
+
+  .selector-container {
+    display: flex;
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 4px;
+    gap: 4px;
+
+    .range-item {
+      flex: 1;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      .range-text {
+        font-size: 14px;
+        font-weight: 500;
+        color: #6b7280;
+        transition: color 0.3s ease;
+      }
+
+      &.active {
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+        .range-text {
+          color: #3b82f6;
+          font-weight: 600;
+        }
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+    }
+  }
+
+  .custom-range-info {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #e0f2fe;
+    border-radius: 6px;
+    text-align: center;
+
+    .range-info-text {
+      font-size: 13px;
+      color: #0369a1;
+      font-weight: 500;
+    }
+  }
+}

@@ -1,0 +1,77 @@
+name: Miniprogram CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'miniprogram/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'miniprogram/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: miniprogram/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./miniprogram
+        run: npm ci
+
+      - name: Run linter
+        working-directory: ./miniprogram
+        run: npm run lint
+
+      - name: Run type check
+        working-directory: ./miniprogram
+        run: npm run type-check
+
+      - name: Run unit tests
+        working-directory: ./miniprogram
+        run: npm test
+
+      - name: Build
+        working-directory: ./miniprogram
+        run: npm run build:weapp
+
+  preview:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: wechat-preview
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: miniprogram/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./miniprogram
+        run: npm ci
+
+      - name: Build for WeChat
+        working-directory: ./miniprogram
+        run: npm run build:weapp
+
+      - name: Publish reviewable preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniprogram-${{ github.sha }}
+          path: ./miniprogram/dist
+          if-no-files-found: error
+          retention-days: 14

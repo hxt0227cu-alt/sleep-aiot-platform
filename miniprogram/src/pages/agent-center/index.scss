@@ -1,0 +1,128 @@
+@import '../../styles/variables.scss';
+
+.agent-center-page {
+  min-height: 100vh;
+  background: $bg-primary;
+}
+
+.agent-scroll {
+  height: 100vh;
+  padding: $spacing-md;
+  box-sizing: border-box;
+}
+
+.agent-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+}
+
+.agent-tab {
+  min-width: 0;
+  height: 72px;
+  padding: 0;
+  border: 1px solid rgba(75, 42, 106, 0.16);
+  border-radius: $border-radius-sm;
+  background: rgba(255, 255, 255, 0.62);
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  line-height: 72px;
+
+  &.active {
+    background: $primary-color;
+    color: white;
+  }
+}
+
+.agent-section,
+.agent-result {
+  padding: $spacing-lg 0;
+  border-top: 1px solid rgba(75, 42, 106, 0.14);
+}
+
+.agent-title {
+  display: block;
+  color: $text-primary;
+  font-size: $font-size-lg;
+  font-weight: 600;
+  margin-bottom: $spacing-sm;
+}
+
+.agent-meta,
+.result-evidence {
+  display: block;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  margin-bottom: $spacing-md;
+}
+
+.agent-input {
+  width: 100%;
+  min-height: 180px;
+  box-sizing: border-box;
+  padding: $spacing-md;
+  border: 1px solid rgba(75, 42, 106, 0.18);
+  border-radius: $border-radius-sm;
+  background: rgba(255, 255, 255, 0.72);
+  color: $text-primary;
+  font-size: $font-size-md;
+  margin: $spacing-md 0;
+}
+
+.agent-run-button {
+  width: 100%;
+  height: 88px;
+  border-radius: $border-radius-sm;
+  background: $primary-color;
+  color: white;
+  font-size: $font-size-md;
+  line-height: 88px;
+
+  &[disabled] {
+    opacity: 0.55;
+  }
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.result-title {
+  color: $text-primary;
+  font-size: $font-size-lg;
+  font-weight: 600;
+}
+
+.result-status {
+  color: $text-secondary;
+  font-size: $font-size-sm;
+
+  &.succeeded {
+    color: $success-color;
+  }
+
+  &.failed {
+    color: $danger-color;
+  }
+}
+
+.result-line,
+.result-error {
+  display: block;
+  overflow-wrap: anywhere;
+  color: $text-primary;
+  font-size: $font-size-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.result-error {
+  color: $danger-color;
+}
+
+.result-evidence {
+  margin-top: $spacing-lg;
+}

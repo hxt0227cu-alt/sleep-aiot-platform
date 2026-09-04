@@ -1,0 +1,495 @@
+services:
+  postgres:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sleep}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-sleep}
+    ports: ["5433:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sleep} -d ${POSTGRES_DB:-sleep}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}"]
+    ports: ["6380:6379"]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  emqx:
+    image: emqx/emqx:5.8.6
+    environment:
+      EMQX_DASHBOARD__DEFAULT_USERNAME: ${EMQX_DASHBOARD_USERNAME:-admin}
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD:?set EMQX_DASHBOARD_PASSWORD}
+    ports: ["1883:1883", "18083:18083"]
+    volumes: [emqx_data:/opt/emqx/data]
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../observability/alerts:/etc/prometheus/alerts:ro
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:12.0.2
+    depends_on: [prometheus]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3001:3000"]
+
+  agent-service:
+    build:
+      context: ../../services/agent-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      AGENT_STATE_BACKEND: postgres
+      AGENT_COORDINATOR: temporal
+      AGENT_STATE_DATABASE_URL: postgresql://${POSTGRES_USER:-sleep}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sleep}
+      AGENT_STATE_POOL_MAX: "10"
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TASK_QUEUE: sleep-agent-runs
+      FEATURE_PROVIDER: ${FEATURE_PROVIDER:-simulated}
+      FEATURE_SERVICE_URL: http://feature-service:8101
+      FEATURE_SERVICE_TOKEN: ${FEATURE_SERVICE_TOKEN:?set FEATURE_SERVICE_TOKEN}
+      FEATURE_SERVICE_TIMEOUT_SECONDS: "1.5"
+      KNOWLEDGE_PROVIDER: ${KNOWLEDGE_PROVIDER:-service}
+      KNOWLEDGE_SERVICE_URL: http://host.docker.internal:3000/api
+      KNOWLEDGE_SERVICE_TOKEN: ${KNOWLEDGE_SERVICE_TOKEN:?set KNOWLEDGE_SERVICE_TOKEN}
+      KNOWLEDGE_SERVICE_TIMEOUT_SECONDS: "2.0"
+      AGENT_MODEL_PROVIDER: ${AGENT_MODEL_PROVIDER:-deterministic}
+      AGENT_MODEL_API_KEY: ${AGENT_MODEL_API_KEY:-}
+      AGENT_MODEL_BASE_URL: ${AGENT_MODEL_BASE_URL:-}
+      AGENT_MODEL_NAME: ${AGENT_MODEL_NAME:-qwen3.6-flash}
+      AGENT_MODEL_TIMEOUT_SECONDS: ${AGENT_MODEL_TIMEOUT_SECONDS:-45}
+      AGENT_MODEL_MAX_CONCURRENCY: ${AGENT_MODEL_MAX_CONCURRENCY:-100}
+      AGENT_MODEL_MAX_OUTPUT_TOKENS: ${AGENT_MODEL_MAX_OUTPUT_TOKENS:-1200}
+      AGENT_MODEL_FAILURE_MODE: ${AGENT_MODEL_FAILURE_MODE:-fallback}
+      AGENT_MODEL_CIRCUIT_BREAKER_FAILURES: ${AGENT_MODEL_CIRCUIT_BREAKER_FAILURES:-5}
+      AGENT_MODEL_CIRCUIT_BREAKER_COOLDOWN_SECONDS: ${AGENT_MODEL_CIRCUIT_BREAKER_COOLDOWN_SECONDS:-30}
+    ports: ["8000:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      control-db-migrate:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  control-db-migrate:
+    build:
+      context: ../../backend
+    # Local/E2 uses a disposable empty database. E3+ must keep the versioned
+    # migration Job and cannot promote this db-push bootstrap pattern.
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        printf '%s\n' 'CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS timescaledb;'
+        | ./node_modules/.bin/prisma db execute --stdin --schema prisma/schema.prisma
+        && ./node_modules/.bin/prisma db push --skip-generate --schema prisma/schema.prisma
+        && sed -n '/CREATE TABLE "agent_runtime_runs"/,/CREATE INDEX "agent_memory_audit_scope_idx"/p'
+        prisma/migrations/20260000000000_baseline/migration.sql
+        | ./node_modules/.bin/prisma db execute --stdin --schema prisma/schema.prisma
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sleep}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sleep}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  temporal:
+    image: temporalio/auto-setup:1.27.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-sleep}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_SEEDS: postgres
+    ports: ["7233:7233"]
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    restart: unless-stopped
+
+  kafka:
+    image: apache/kafka:3.9.1
+    profiles: ["data-platform"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,HOST://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,HOST://127.0.0.1:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 12
+    ports: ["9092:9092", "29092:29092"]
+    volumes: [kafka_data:/var/lib/kafka/data]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 30s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  kafka-init:
+    image: apache/kafka:3.9.1
+    profiles: ["data-platform"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092
+        --create --if-not-exists --topic _schemas
+        --partitions 1 --replication-factor 1
+        --config cleanup.policy=compact &&
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092
+        --create --if-not-exists --topic telemetry.device.v1
+        --partitions 12 --replication-factor 1 &&
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092
+        --create --if-not-exists --topic telemetry.device.v1.dlq
+        --partitions 12 --replication-factor 1
+        --config retention.ms=604800000 &&
+        for topic in telemetry.flink.dwd.v1 telemetry.flink.late.v1 telemetry.flink.aggregate.v1 telemetry.flink.invalid.v1 telemetry.flink.duplicate.v1; 
+        do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic "$${topic}" --partitions 3 --replication-factor 1 --config retention.ms=604800000 || exit 1;
+        done
+
+  flink-storage-init:
+    image: sleep-flink-telemetry-job:local
+    build:
+      context: ../../services/flink-telemetry-job
+    profiles: ["data-platform"]
+    user: "0"
+    volumes:
+      - flink_checkpoints:/opt/flink/checkpoints
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mkdir -p /opt/flink/checkpoints && chown -R flink:flink /opt/flink/checkpoints"]
+
+  flink-jobmanager:
+    image: sleep-flink-telemetry-job:local
+    build:
+      context: ../../services/flink-telemetry-job
+    profiles: ["data-platform"]
+    command: jobmanager
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      flink-storage-init:
+        condition: service_completed_successfully
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.memory.process.size: 768m
+        taskmanager.memory.process.size: 1536m
+        taskmanager.numberOfTaskSlots: 2
+        parallelism.default: 1
+        rest.bind-address: 0.0.0.0
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+        metrics.reporter.prom.port: 9249
+    ports:
+      - "8082:8081"
+      - "9249:9249"
+    volumes:
+      - flink_checkpoints:/opt/flink/checkpoints
+    restart: unless-stopped
+
+  flink-taskmanager:
+    image: sleep-flink-telemetry-job:local
+    build:
+      context: ../../services/flink-telemetry-job
+    profiles: ["data-platform"]
+    command: taskmanager
+    depends_on:
+      flink-jobmanager:
+        condition: service_started
+      flink-storage-init:
+        condition: service_completed_successfully
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.memory.process.size: 768m
+        taskmanager.memory.process.size: 1536m
+        taskmanager.numberOfTaskSlots: 2
+        parallelism.default: 1
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+        metrics.reporter.prom.port: 9249
+    ports:
+      - "9250:9249"
+    volumes:
+      - flink_checkpoints:/opt/flink/checkpoints
+    restart: unless-stopped
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.9.2
+    profiles: ["data-platform"]
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
+      SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL: BACKWARD
+      KAFKA_HEAP_OPTS: -Xms128m -Xmx256m
+    ports: ["8081:8081"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8081/subjects >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    restart: unless-stopped
+
+  schema-contract-init:
+    image: node:20-bookworm-slim
+    profiles: ["data-platform"]
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      SCHEMA_REGISTRY_SUBJECT: telemetry.device.v1-value
+      SCHEMA_COMPATIBILITY: BACKWARD
+      SCHEMA_PATH: /contracts/device-telemetry-received.v1.schema.json
+    volumes:
+      - ../data-contracts:/contracts:ro
+    entrypoint: ["node", "/contracts/register-schema.mjs"]
+
+  telemetry-ingest:
+    build:
+      context: ../../services/telemetry-ingest
+    profiles: ["data-platform"]
+    depends_on:
+      emqx:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_healthy
+      schema-contract-init:
+        condition: service_completed_successfully
+    environment:
+      MQTT_BROKER_URL: mqtt://emqx:1883
+      MQTT_CLEAN_SESSION: "true"
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TELEMETRY_TOPIC: telemetry.device.v1
+      TELEMETRY_SCHEMA_PATH: /contracts/device-telemetry.v1.schema.json
+      TELEMETRY_EVENT_SCHEMA_PATH: /contracts/device-telemetry-received.v1.schema.json
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      SCHEMA_REGISTRY_SUBJECT: telemetry.device.v1-value
+    volumes:
+      - ../data-contracts:/contracts:ro
+    ports: ["9102:9102"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9102/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  realtime-worker:
+    build:
+      context: ../../services/realtime-worker
+    profiles: ["data-platform"]
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      clickhouse-init:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_healthy
+      schema-contract-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TELEMETRY_TOPIC: telemetry.device.v1
+      KAFKA_TELEMETRY_DLQ_TOPIC: telemetry.device.v1.dlq
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      SCHEMA_REGISTRY_SUBJECT: telemetry.device.v1-value
+      SCHEMA_REGISTRY_CACHE_MAX_ENTRIES: "100"
+      SCHEMA_REGISTRY_TIMEOUT_MS: "5000"
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sleep}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-sleep_warehouse}
+      IDEMPOTENCY_CACHE_TTL_MS: "900000"
+      IDEMPOTENCY_CACHE_MAX_ENTRIES: "100000"
+      DLQ_MAX_PAYLOAD_BYTES: "262144"
+    ports: ["9103:9103"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9103/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 45s
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8.14.39-alpine
+    profiles: ["data-platform"]
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sleep}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-sleep_warehouse}
+    ports: ["8123:8123", "9000:9000"]
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ../data/clickhouse:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  clickhouse-init:
+    image: clickhouse/clickhouse-server:24.8.14.39-alpine
+    profiles: ["data-platform"]
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sleep}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set CLICKHOUSE_PASSWORD}
+    volumes:
+      - ../data/clickhouse:/migrations:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        for migration in /migrations/[0-9][0-9][0-9]_*.sql; do
+          echo "Applying $${migration}";
+          clickhouse-client --host clickhouse --user "$${CLICKHOUSE_USER}" --password "$${CLICKHOUSE_PASSWORD}" --multiquery < "$${migration}" || exit 1;
+        done
+
+  feature-service:
+    build:
+      context: ../../services/feature-service
+    profiles: ["data-platform"]
+    depends_on:
+      clickhouse-init:
+        condition: service_completed_successfully
+    environment:
+      FEATURE_SERVICE_TOKEN: ${FEATURE_SERVICE_TOKEN:?set FEATURE_SERVICE_TOKEN}
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sleep}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set CLICKHOUSE_PASSWORD}
+      FEATURE_QUERY_TIMEOUT_SECONDS: "2"
+      FEATURE_CACHE_TTL_SECONDS: "30"
+      FEATURE_CACHE_MAX_ENTRIES: "10000"
+      FEATURE_MAX_STALENESS_SECONDS: "3600"
+    ports: ["8101:8101"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    profiles: ["data-platform"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+    ports: ["9001:9001", "9002:9000"]
+    volumes: [minio_data:/data]
+
+  data-jobs:
+    image: sleep-data-jobs:local
+    build:
+      context: ../data/dbt
+    profiles: ["data-platform"]
+    depends_on:
+      clickhouse-init:
+        condition: service_completed_successfully
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sleep}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set CLICKHOUSE_PASSWORD}
+
+  model-gateway:
+    image: ghcr.io/berriai/litellm:v1.74.3-stable
+    profiles: ["ai"]
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY}
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://model-serving:8000/v1}
+      VLLM_API_KEY: ${VLLM_API_KEY:-local-vllm}
+      FALLBACK_MODEL: ${FALLBACK_MODEL:-openai/gpt-4o-mini}
+      FALLBACK_BASE_URL: ${FALLBACK_BASE_URL:-https://api.openai.com/v1}
+      FALLBACK_API_KEY: ${FALLBACK_API_KEY:?set FALLBACK_API_KEY}
+    volumes:
+      - ../model-gateway/litellm-config.yaml:/app/config.yaml:ro
+    ports: ["4000:4000"]
+
+  model-serving:
+    image: vllm/vllm-openai:v0.8.5
+    profiles: ["gpu"]
+    command:
+      - --model
+      - Qwen/Qwen3-8B-AWQ
+      - --served-model-name
+      - qwen3-8b-awq
+      - --max-model-len
+      - "8192"
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+    ports: ["8100:8000"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  postgres_data:
+  redis_data:
+  emqx_data:
+  grafana_data:
+  kafka_data:
+  clickhouse_data:
+  minio_data:
+  flink_checkpoints:

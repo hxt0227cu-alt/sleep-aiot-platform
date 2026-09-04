@@ -1,0 +1,288 @@
+# ============================================================
+# 睡眠监测平台 - 轻量级 Docker Compose 配置
+# ============================================================
+# 用途：开发测试、小规模部署、演示环境
+# 生产环境请使用 Kubernetes 部署（见 platform/k8s/）
+#
+# 启动：docker-compose -f docker-compose.lite.yml up -d
+# 停止：docker-compose -f docker-compose.lite.yml down
+# 查看日志：docker-compose -f docker-compose.lite.yml logs -f
+
+version: '3.8'
+
+# 网络
+networks:
+  sleep-monitor:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# 数据卷
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  emqx-data:
+  clickhouse-data:
+  vault-data:
+  grafana-data:
+  prometheus-data:
+
+services:
+  # ============================================================
+  # PostgreSQL (TimescaleDB)
+  # ============================================================
+  postgres:
+    image: timescale/timescaledb:2.13.0-pg15
+    container_name: sleep-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sleep_monitor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sleep_monitor_123}
+      POSTGRES_DB: sleep_platform
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/prisma/migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sleep-monitor
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sleep_monitor -d sleep_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Redis
+  # ============================================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: sleep-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_123} --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - sleep-monitor
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_123}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Kafka (单节点 KRaft)
+  # ============================================================
+  kafka:
+    image: bitnami/kafka:3.6
+    container_name: sleep-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_LOG_RETENTION_HOURS: 168
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/bitnami/kafka
+    networks:
+      - sleep-monitor
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # EMQX (MQTT Broker)
+  # ============================================================
+  emqx:
+    image: emqx/emqx:5.3
+    container_name: sleep-emqx
+    restart: unless-stopped
+    environment:
+      EMQX_NAME: sleep-emqx
+      EMQX_HOST: emqx
+      EMQX_LISTENERS__TCP__DEFAULT__BIND: 0.0.0.0:1883
+      EMQX_LISTENERS__SSL__DEFAULT__BIND: 0.0.0.0:8883
+      EMQX_DASHBOARD__DEFAULT_USERNAME: admin
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_ADMIN_PASSWORD:-admin_123}
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+      - "18083:18083"  # Dashboard
+    volumes:
+      - emqx-data:/opt/emqx/data
+    networks:
+      - sleep-monitor
+    healthcheck:
+      test: ["CMD-SHELL", "emqx_ctl status | grep -q 'is running'"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # ClickHouse
+  # ============================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: sleep-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_USER: sleep_monitor
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse_123}
+      CLICKHOUSE_DB: sleep_analytics
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    networks:
+      - sleep-monitor
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping | grep -q Ok"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # Vault (开发模式)
+  # ============================================================
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: sleep-vault
+    restart: unless-stopped
+    command: server -dev -dev-root-token-id=${VAULT_DEV_TOKEN:-dev-token}
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_TOKEN:-dev-token}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault-data:/vault/data
+    networks:
+      - sleep-monitor
+    cap_add:
+      - IPC_LOCK
+
+  # ============================================================
+  # 后端服务
+  # ============================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sleep-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+      vault:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      APP_PORT: 3000
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: sleep_platform
+      DATABASE_USERNAME: sleep_monitor
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-sleep_monitor_123}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_123}
+      KAFKA_BROKERS: kafka:9092
+      MQTT_HOST: emqx
+      MQTT_PORT: 1883
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_DEV_TOKEN:-dev-token}
+      JWT_SECRET: ${JWT_SECRET:-jwt_secret_change_me}
+      LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+      - "9090:9090"  # Prometheus metrics
+    networks:
+      - sleep-monitor
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health | grep -q ok"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # 前端 Web
+  # ============================================================
+  frontend:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: sleep-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_BASE_URL: http://backend:3000
+    ports:
+      - "8080:80"
+    networks:
+      - sleep-monitor
+
+  # ============================================================
+  # Prometheus
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: sleep-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    ports:
+      - "9091:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./platform/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - sleep-monitor
+
+  # ============================================================
+  # Grafana
+  # ============================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: sleep-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_123}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./platform/monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./platform/monitoring/grafana-datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - sleep-monitor
+    depends_on:
+      - prometheus

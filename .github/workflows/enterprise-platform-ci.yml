@@ -1,0 +1,282 @@
+name: Enterprise Platform CI
+
+on:
+  push:
+    paths:
+      - 'services/**'
+      - 'platform/**'
+      - '.github/workflows/enterprise-platform-ci.yml'
+  pull_request:
+    paths:
+      - 'services/**'
+      - 'platform/**'
+
+jobs:
+  feature-service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: services/feature-service/pyproject.toml
+      - name: Install and test
+        working-directory: services/feature-service
+        run: |
+          pip install -e '.[test]'
+          pytest -q
+
+  agent-service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install and test
+        working-directory: services/agent-service
+        env:
+          AGENT_EVALUATION_OUTPUT: ${{ runner.temp }}/agent-evaluation
+        run: |
+          pip install -e '.[test]'
+          pytest -q
+          python -m app.evaluation --output "$AGENT_EVALUATION_OUTPUT"
+          python -c "import app.temporal_worker"
+          python -c "import json, os, pathlib; rows = [json.loads(line) for line in (pathlib.Path(os.environ['AGENT_EVALUATION_OUTPUT']) / 'results.jsonl').read_text(encoding='utf-8').splitlines()]; assert rows and all(row['passed'] for row in rows)"
+
+  simulated-device:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Test deterministic telemetry and fault injection
+        run: |
+          npm ci
+          node platform/load-tests/device-simulator.test.js
+
+  telemetry-ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: services/telemetry-ingest/pnpm-lock.yaml
+      - name: Test, type check, and build
+        working-directory: services/telemetry-ingest
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm run type-check
+
+  realtime-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: services/realtime-worker/pnpm-lock.yaml
+      - name: Test, type check, and build
+        working-directory: services/realtime-worker
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm run type-check
+          node --check test/rebalance-smoke.cjs
+          node --check test/clickhouse-dedup-probe.cjs
+          node ../../platform/load-tests/verify-rebalance-evidence.js
+
+  flink-telemetry-job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Test, package, and verify formal event-time evidence
+        working-directory: services/flink-telemetry-job
+        run: |
+          mvn -B clean verify
+          node --check ../../platform/load-tests/flink-event-time-smoke.mjs
+          node ../../platform/load-tests/verify-flink-event-time-evidence.mjs
+
+  data-warehouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Start ClickHouse and apply ordered migrations
+        run: |
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            up -d clickhouse
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            run --rm clickhouse-init
+      - name: Seed duplicate-preserving ODS fixture
+        run: |
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            exec -T clickhouse clickhouse-client \
+            --user sleep \
+            --password replace-with-random-local-password \
+            --query "INSERT INTO raw.device_telemetry (event_id, tenant_id, device_id, schema_version, occurred_at, received_at, sequence, heart_rate, breathing_rate, body_movement, sleep_state, confidence) VALUES ('00000000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111','shared-device',1,now64(3)-INTERVAL 5 HOUR,now64(3),1,60,12,0.1,'deep',0.9),('00000000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111','shared-device',1,now64(3)-INTERVAL 5 HOUR,now64(3),1,60,12,0.1,'deep',0.9),('00000000-0000-4000-8000-000000000002','11111111-1111-4111-8111-111111111111','shared-device',1,now64(3)-INTERVAL 4 HOUR,now64(3),2,70,14,0.2,'awake',0.9),('00000000-0000-4000-8000-000000000003','11111111-1111-4111-8111-111111111111','shared-device',1,now64(3)-INTERVAL 3 HOUR,now64(3),3,80,16,0.3,'rem',0.9),('00000000-0000-4000-8000-000000000004','22222222-2222-4222-8222-222222222222','shared-device',1,now64(3)-INTERVAL 2 HOUR,now64(3),4,90,18,0.1,'deep',0.9),('00000000-0000-4000-8000-000000000005','22222222-2222-4222-8222-222222222222','shared-device',1,now64(3)-INTERVAL 1 HOUR,now64(3),5,100,20,0.2,'deep',0.9)"
+      - name: Build full and incremental warehouse layers
+        run: |
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            run --rm --build data-jobs build --full-refresh --project-dir /app --profiles-dir /app --target local
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            run --rm data-jobs build --project-dir /app --profiles-dir /app --target local
+      - name: Verify formal local warehouse evidence
+        run: |
+          node --check platform/load-tests/capture-dbt-warehouse-evidence.mjs
+          node platform/load-tests/verify-dbt-warehouse-evidence.mjs
+      - name: Verify tenant-scoped Feature Service and Agent integration
+        env:
+          FEATURE_SERVICE_TOKEN: replace-with-random-local-service-token
+          KNOWLEDGE_PROVIDER: embedded
+          EVIDENCE_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+          EVIDENCE_OUTPUT: ${{ runner.temp }}/ci-agent-feature-service.json
+        run: |
+          if ! docker compose \
+              --env-file platform/local/.env.example \
+              -f platform/local/docker-compose.enterprise.yml \
+              --profile data-platform \
+              up -d --build feature-service agent-service; then
+            docker compose \
+              --env-file platform/local/.env.example \
+              -f platform/local/docker-compose.enterprise.yml \
+              --profile data-platform \
+              logs postgres control-db-migrate temporal feature-service agent-service
+            exit 1
+          fi
+          node --check platform/load-tests/agent-feature-service-smoke.mjs
+          if ! node platform/load-tests/agent-feature-service-smoke.mjs; then
+            if [[ -f "$EVIDENCE_OUTPUT" ]]; then
+              cat "$EVIDENCE_OUTPUT"
+            fi
+            docker compose \
+              --env-file platform/local/.env.example \
+              -f platform/local/docker-compose.enterprise.yml \
+              --profile data-platform \
+              logs temporal feature-service agent-service
+            exit 1
+          fi
+      - name: Stop warehouse test services
+        if: always()
+        run: |
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            down -v
+
+  schema-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Start Kafka, Registry, and contract initialization
+        run: |
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            up -d schema-registry
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            run --rm schema-contract-init
+      - name: Verify Registry compatibility enforcement
+        env:
+          SCHEMA_REGISTRY_URL: http://127.0.0.1:8081
+          EVIDENCE_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node platform/load-tests/schema-compatibility-smoke.js
+      - name: Stop contract test services
+        if: always()
+        run: |
+          docker compose \
+            --env-file platform/local/.env.example \
+            -f platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            down -v
+
+  deployment-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Render Kubernetes manifests
+        run: |
+          kubectl kustomize platform/k8s/overlays/validation >/tmp/rendered.yaml
+          kubectl kustomize platform/k8s/overlays/alicloud-validation >/tmp/alicloud-validation.yaml
+
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce fixed HIGH/CRITICAL findings
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Generate complete Trivy SARIF
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          format: sarif
+          output: trivy-results.sarif
+          ignore-unfixed: true
+          exit-code: '0'
+      - name: Preserve Trivy SARIF
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: trivy-sarif-${{ github.run_id }}-${{ github.run_attempt }}
+          path: trivy-results.sarif
+          if-no-files-found: error
+          retention-days: 14

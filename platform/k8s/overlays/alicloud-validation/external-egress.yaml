@@ -1,0 +1,54 @@
+# Documentation-only /32 values are replaced by New-DeploymentBundle.ps1.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-api-alicloud-data-egress
+  namespace: sleep-platform
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: backend-api
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.0.2.10/32
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-service-alicloud-data-egress
+  namespace: sleep-platform
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agent-service
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.0.2.11/32
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: temporal-alicloud-data-egress
+  namespace: sleep-platform
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: temporal
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.0.2.12/32
+      ports:
+        - protocol: TCP
+          port: 5432

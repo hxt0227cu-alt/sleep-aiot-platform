@@ -1,0 +1,396 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.profile-page {
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+.scroll-container {
+  height: 100vh;
+}
+
+.user-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  margin: $spacing-md;
+}
+
+.avatar-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: $spacing-xl;
+  position: relative;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+}
+
+.avatar-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  @include flex-center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.edit-icon {
+  font-size: 18px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-label {
+  font-size: $font-size-md;
+  color: $text-secondary;
+}
+
+.info-value {
+  font-size: $font-size-md;
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.device-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin: $spacing-md;
+}
+
+.section-header {
+  @include flex-between;
+  margin-bottom: $spacing-lg;
+}
+
+.section-title {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.section-count {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  background: rgba(245, 158, 11, 0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: $spacing-xl 0;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: $spacing-md;
+}
+
+.empty-text {
+  font-size: $font-size-md;
+  color: $text-secondary;
+  margin-bottom: $spacing-lg;
+}
+
+.empty-action {
+  display: inline-block;
+  padding: $spacing-md $spacing-xl;
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: $border-radius-md;
+  color: white;
+  font-size: $font-size-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.action-text {
+  color: white;
+}
+
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.device-item {
+  @include glass-effect;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+  position: relative;
+
+  &.active {
+    border: 2px solid $primary-color;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.device-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  @include flex-center;
+}
+
+.device-icon .icon {
+  font-size: 24px;
+}
+
+.device-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.device-name {
+  font-size: $font-size-md;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.device-status {
+  font-size: $font-size-xs;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+
+  &.online {
+    background: rgba(16, 185, 129, 0.2);
+    color: $success-color;
+  }
+
+  &.offline {
+    background: rgba(255, 255, 255, 0.1);
+    color: $text-muted;
+  }
+}
+
+.current-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  background: $primary-color;
+  color: white;
+  font-size: $font-size-xs;
+  border-radius: 8px;
+}
+
+.badge-text {
+  color: white;
+}
+
+.menu-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-md;
+  margin: $spacing-md;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &.logout {
+    margin-top: $spacing-lg;
+  }
+}
+
+.menu-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  @include flex-center;
+}
+
+.menu-icon .icon {
+  font-size: 20px;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $text-primary;
+}
+
+.menu-arrow {
+  font-size: $font-size-xl;
+  color: $text-muted;
+}
+
+.settings-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-md;
+  margin: $spacing-md;
+}
+
+.settings-section .section-title {
+  margin-bottom: $spacing-md;
+}
+
+.title-text {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.contact-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  @include flex-center;
+  z-index: 1000;
+}
+
+.modal-content {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  width: 85%;
+  max-width: 400px;
+  background: $bg-secondary;
+}
+
+.modal-header {
+  @include flex-between;
+  margin-bottom: $spacing-lg;
+}
+
+.modal-title {
+  font-size: $font-size-xl;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.close-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  @include flex-center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.close-icon {
+  font-size: 18px;
+  color: $text-secondary;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.input-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  margin-bottom: 4px;
+}
+
+.input {
+  height: 48px;
+  padding: 0 $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: $border-radius-sm;
+  color: $text-primary;
+  font-size: $font-size-md;
+}
+
+.modal-footer {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+}
+
+.modal-button {
+  flex: 1;
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  text-align: center;
+  font-size: $font-size-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &.cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: $text-secondary;
+  }
+
+  &.confirm {
+    background: $primary-color;
+    color: white;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}

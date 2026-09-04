@@ -1,0 +1,156 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.history-page {
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+.header-section {
+  padding: $spacing-lg;
+}
+
+.title-section {
+  margin-bottom: $spacing-xl;
+}
+
+.page-title {
+  font-size: $font-size-3xl;
+  font-weight: bold;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.page-subtitle {
+  font-size: $font-size-md;
+  color: $text-secondary;
+}
+
+.score-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.range-selector {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-sm;
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.range-item {
+  flex: 1;
+  text-align: center;
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  transition: all $transition-normal;
+  cursor: pointer;
+
+  &.active {
+    background: rgba(245, 158, 11, 0.2);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.range-text {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.content-section {
+  height: calc(100vh - 200px);
+  padding: 0 $spacing-lg;
+}
+
+.chart-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.section-header {
+  margin-bottom: $spacing-lg;
+}
+
+.section-title {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+}
+
+.stats-info {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: $spacing-sm;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-sm;
+}
+
+.stat-label {
+  font-size: $font-size-xs;
+  color: $text-muted;
+}
+
+.stat-value {
+  font-size: $font-size-xl;
+  font-weight: bold;
+  color: $primary-color;
+}
+
+.data-summary {
+  margin-top: $spacing-lg;
+}
+
+.summary-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+}
+
+.summary-title {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.summary-content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: $border-radius-sm;
+}
+
+.summary-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.summary-value {
+  font-size: $font-size-md;
+  font-weight: bold;
+  color: $text-primary;
+}

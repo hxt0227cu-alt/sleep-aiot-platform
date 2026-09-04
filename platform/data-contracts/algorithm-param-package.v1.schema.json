@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sleep-monitor.com/schemas/algorithm-param-package.v1.json",
+  "title": "Algorithm Parameter Package",
+  "description": "算法参数包数据契约，用于云端向设备下发算法参数",
+  "type": "object",
+  "required": ["magic", "version", "packageId", "algorithmName", "paramCount", "params", "signature"],
+  "properties": {
+    "magic": {
+      "type": "integer",
+      "const": 1346458189,
+      "description": "魔数 0x5041524D ('PARM')"
+    },
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "参数包格式版本"
+    },
+    "packageId": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "参数包唯一标识"
+    },
+    "algorithmName": {
+      "type": "string",
+      "maxLength": 32,
+      "description": "算法名称",
+      "enum": ["sleep_staging", "alarm_detection", "respiration_analysis", "heart_rate_analysis", "spo2_estimation"]
+    },
+    "minFirmwareVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "最低兼容固件版本（语义化版本）"
+    },
+    "maxFirmwareVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "最高兼容固件版本（语义化版本）"
+    },
+    "paramCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64,
+      "description": "参数数量"
+    },
+    "params": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "required": ["name", "value"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "参数名称"
+          },
+          "value": {
+            "type": "number",
+            "description": "参数值"
+          },
+          "minValue": {
+            "type": "number",
+            "description": "参数最小值（范围校验）"
+          },
+          "maxValue": {
+            "type": "number",
+            "description": "参数最大值（范围校验）"
+          },
+          "hasRange": {
+            "type": "boolean",
+            "default": false,
+            "description": "是否启用范围校验"
+          },
+          "unit": {
+            "type": "string",
+            "description": "参数单位"
+          },
+          "description": {
+            "type": "string",
+            "description": "参数说明"
+          }
+        }
+      }
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{128}$",
+      "description": "ECDSA-P256 签名（R+S，128位十六进制）"
+    },
+    "crc32": {
+      "type": "integer",
+      "description": "CRC32 校验值"
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "签发时间"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "过期时间"
+    },
+    "issuer": {
+      "type": "string",
+      "description": "签发者"
+    }
+  },
+  "examples": [
+    {
+      "magic": 1346458189,
+      "version": 1,
+      "packageId": 1001,
+      "algorithmName": "sleep_staging",
+      "minFirmwareVersion": "1.0.0",
+      "maxFirmwareVersion": "1.5.0",
+      "paramCount": 3,
+      "params": [
+        {
+          "name": "apnea_threshold",
+          "value": 10.0,
+          "minValue": 5.0,
+          "maxValue": 30.0,
+          "hasRange": true,
+          "unit": "seconds",
+          "description": "呼吸暂停检测阈值"
+        },
+        {
+          "name": "tachycardia_threshold",
+          "value": 100.0,
+          "minValue": 80.0,
+          "maxValue": 150.0,
+          "hasRange": true,
+          "unit": "bpm",
+          "description": "心动过速检测阈值"
+        },
+        {
+          "name": "bradycardia_threshold",
+          "value": 40.0,
+          "minValue": 30.0,
+          "maxValue": 60.0,
+          "hasRange": true,
+          "unit": "bpm",
+          "description": "心动过缓检测阈值"
+        }
+      ],
+      "signature": "a1b2c3d4e5f6...",
+      "crc32": 1234567890,
+      "issuedAt": "2026-08-20T10:00:00Z",
+      "expiresAt": "2027-08-20T10:00:00Z",
+      "issuer": "algorithm-team"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+batch_id,device_id,hardware_version,current_firmware,target_firmware,ota_status,rollback_reason,region,tenant_id,last_heartbeat
+batch-2026q1-a,DEV-001,hw-1.0,1.0.0,1.0.1,pending,,cn-south,tenant-001,2026-08-20T10:00:00Z
+batch-2026q1-a,DEV-002,hw-1.0,1.0.0,1.0.1,in_progress,,cn-south,tenant-001,2026-08-20T10:05:00Z
+batch-2026q1-a,DEV-003,hw-1.0,1.0.0,1.0.1,success,,cn-south,tenant-001,2026-08-20T10:10:00Z
+batch-2026q1-a,DEV-004,hw-1.0,1.0.0,1.0.1,rollback,boot_failure,cn-south,tenant-001,2026-08-20T10:15:00Z
+batch-2026q1-a,DEV-005,hw-1.0,1.0.0,1.0.1,failed,download_timeout,cn-south,tenant-001,2026-08-20T10:20:00Z
+batch-2026q1-b,DEV-006,hw-1.1,1.0.0,1.0.1,pending,,cn-east,tenant-002,2026-08-20T10:00:00Z
+batch-2026q1-b,DEV-007,hw-1.1,1.0.0,1.0.1,success,,cn-east,tenant-002,2026-08-20T10:05:00Z
+batch-2026q1-b,DEV-008,hw-1.1,1.0.0,1.0.1,in_progress,,cn-east,tenant-002,2026-08-20T10:10:00Z

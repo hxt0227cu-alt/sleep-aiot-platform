@@ -1,0 +1,26 @@
+packages:
+  - .
+
+overrides:
+  fast-uri@^3.0.0: 3.1.5
+  fast-uri@^4.0.0: 4.1.2
+  find-my-way: 9.7.0
+  ip-address@^10.0.0: 10.4.0
+  js-yaml@5.2.1: 5.2.2
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - bcrypt
+  - prisma
+  - unrs-resolver
+
+ignoredBuiltDependencies:
+  - '@scarf/scarf'
+
+allowBuilds:
+  '@prisma/client': set this to true or false
+  '@prisma/engines': set this to true or false
+  '@scarf/scarf': set this to true or false
+  bcrypt: set this to true or false
+  prisma: set this to true or false

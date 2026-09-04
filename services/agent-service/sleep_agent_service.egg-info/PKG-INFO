@@ -1,0 +1,20 @@
+Metadata-Version: 2.4
+Name: sleep-agent-service
+Version: 0.1.0
+Summary: Durable, policy-governed agent runtime boundary for the Sleep AIoT platform.
+Requires-Python: >=3.12
+Requires-Dist: fastapi<1,>=0.115
+Requires-Dist: uvicorn[standard]<1,>=0.34
+Requires-Dist: pydantic<3,>=2.10
+Requires-Dist: httpx<1,>=0.28
+Requires-Dist: openai<2,>=1.68
+Requires-Dist: langgraph<2,>=1.2.10
+Requires-Dist: langchain-core<2,>=1.2.22
+Requires-Dist: langsmith<1,>=0.8.18
+Requires-Dist: temporalio<2,>=1.10
+Requires-Dist: psycopg[binary]<4,>=3.2
+Requires-Dist: psycopg-pool<4,>=3.2
+Provides-Extra: test
+Requires-Dist: pytest<10,>=8; extra == "test"
+Requires-Dist: pytest-asyncio<2,>=0.25; extra == "test"
+Requires-Dist: httpx<1,>=0.28; extra == "test"

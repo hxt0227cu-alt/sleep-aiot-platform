@@ -1,0 +1,311 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.device-bind-page {
+  min-height: 100vh;
+  padding: $spacing-xl;
+  background: linear-gradient(180deg, $bg-primary 0%, $bg-secondary 100%);
+}
+
+.header-section {
+  margin-bottom: $spacing-xl;
+  text-align: center;
+}
+
+.page-title {
+  font-size: $font-size-xxl;
+  font-weight: bold;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.page-desc {
+  font-size: $font-size-md;
+  color: $text-secondary;
+}
+
+.bind-method-section {
+  margin-bottom: $spacing-lg;
+}
+
+.method-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: $border-radius-lg;
+  padding: 4px;
+}
+
+.method-tab {
+  flex: 1;
+  padding: $spacing-md;
+  text-align: center;
+  border-radius: $border-radius-md;
+  transition: all $transition-normal;
+  cursor: pointer;
+
+  &.active {
+    background: $primary-color;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.tab-text {
+  font-size: $font-size-md;
+  font-weight: 500;
+  color: $text-primary;
+
+  .method-tab.active & {
+    color: white;
+  }
+}
+
+.scan-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+}
+
+.scan-content {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  text-align: center;
+}
+
+.scan-icon {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  @include flex-center;
+  margin: 0 auto $spacing-lg;
+}
+
+.scan-icon .icon {
+  font-size: 60px;
+}
+
+.scan-title {
+  font-size: $font-size-xl;
+  font-weight: bold;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.scan-desc {
+  font-size: $font-size-md;
+  color: $text-secondary;
+  line-height: 1.6;
+}
+
+.scan-steps {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.step.number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $primary-color;
+  @include flex-center;
+  flex-shrink: 0;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $primary-color;
+  @include flex-center;
+  flex-shrink: 0;
+  font-size: $font-size-md;
+  font-weight: bold;
+  color: white;
+}
+
+.step-text {
+  font-size: $font-size-md;
+  color: $text-primary;
+}
+
+.scan-button {
+  padding: $spacing-lg $spacing-xl;
+  background: $primary-color;
+  border-radius: $border-radius-lg;
+  text-align: center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.button-text {
+  color: white;
+  font-size: $font-size-lg;
+  font-weight: bold;
+}
+
+.manual-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.form-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+}
+
+.form-item {
+  margin-bottom: $spacing-lg;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.form-label {
+  font-size: $font-size-md;
+  font-weight: 500;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+  display: block;
+}
+
+.form-input {
+  width: 100%;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: $border-radius-md;
+  font-size: $font-size-md;
+  color: $text-primary;
+  transition: all $transition-normal;
+
+  &:focus {
+    border-color: $primary-color;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.form-hint {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  margin-top: $spacing-xs;
+  display: block;
+}
+
+.binding-progress {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: $spacing-sm;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $primary-color, #10b981);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: $font-size-md;
+  color: $text-primary;
+}
+
+.action-buttons {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.action-button {
+  flex: 1;
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  text-align: center;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &.cancel {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &.confirm {
+    background: $primary-color;
+  }
+
+  &.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.action-button .button-text {
+  color: $text-primary;
+  font-size: $font-size-lg;
+  font-weight: bold;
+
+  .action-button.confirm & {
+    color: white;
+  }
+}
+
+.help-section {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin-top: $spacing-xl;
+}
+
+.help-title {
+  font-size: $font-size-lg;
+  font-weight: bold;
+  color: $text-primary;
+  margin-bottom: $spacing-md;
+  display: block;
+}
+
+.help-text {
+  font-size: $font-size-md;
+  color: $text-secondary;
+  line-height: 1.8;
+  margin-bottom: $spacing-xs;
+  display: block;
+}

@@ -1,0 +1,8 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-api
+  namespace: sleep-platform
+spec:
+  minReplicas: 1
+  maxReplicas: 3

@@ -1,0 +1,56 @@
+version: 2
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: device_telemetry
+        description: Immutable validated telemetry written by the canonical realtime path.
+        columns:
+          - name: event_id
+            tests: [not_null]
+          - name: tenant_id
+            tests: [not_null]
+          - name: occurred_at
+            tests: [not_null]
+models:
+  - name: ods_device_telemetry
+    description: Immutable projection of validated telemetry events; duplicates are retained for DWD governance.
+    columns:
+      - name: event_id
+        tests: [not_null]
+      - name: tenant_id
+        tests: [not_null]
+      - name: device_id
+        tests: [not_null]
+  - name: dwd_device_telemetry
+    description: Deduplicated and range-validated telemetry details.
+    columns:
+      - name: event_id
+        tests: [not_null, unique]
+      - name: ingest_delay_ms
+        tests: [not_null]
+  - name: dws_tenant_sleep_hourly
+    description: Tenant-level hourly telemetry and freshness metrics.
+    columns:
+      - name: tenant_id
+        tests: [not_null]
+      - name: hour
+        tests: [not_null]
+  - name: ads_agent_sleep_features
+    description: Recent tenant-hour metrics served to the Agent feature boundary.
+    columns:
+      - name: tenant_id
+        tests: [not_null]
+      - name: refreshed_at
+        tests: [not_null]
+  - name: ads_agent_device_sleep_features
+    description: Seven-day device feature snapshot served only through the tenant-aware Feature Service.
+    columns:
+      - name: tenant_id
+        tests: [not_null]
+      - name: device_id
+        tests: [not_null]
+      - name: window_days
+        tests: [not_null]
+      - name: refreshed_at
+        tests: [not_null]

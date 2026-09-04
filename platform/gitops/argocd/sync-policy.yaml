@@ -1,0 +1,238 @@
+# ArgoCD 同步策略配置
+#
+# 定义各环境的 ArgoCD 应用同步策略。
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: sleep-monitor-platform
+  namespace: argocd
+spec:
+  description: 睡眠监测平台项目
+  sourceRepos:
+    - 'https://github.com/sleep-monitor/platform.git'
+    - 'https://github.com/sleep-monitor/backend.git'
+    - 'https://github.com/sleep-monitor/frontend.git'
+  destinations:
+    - namespace: 'backend'
+      server: https://kubernetes.default.svc
+    - namespace: 'frontend'
+      server: https://kubernetes.default.svc
+    - namespace: 'database'
+      server: https://kubernetes.default.svc
+    - namespace: 'messaging'
+      server: https://kubernetes.default.svc
+    - namespace: 'iot'
+      server: https://kubernetes.default.svc
+    - namespace: 'monitoring'
+      server: https://kubernetes.default.svc
+    - namespace: 'vault'
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+---
+# 开发环境应用
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sleep-monitor-dev
+  namespace: argocd
+  labels:
+    environment: dev
+spec:
+  project: sleep-monitor-platform
+  source:
+    repoURL: https://github.com/sleep-monitor/platform.git
+    targetRevision: develop
+    path: k8s/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+---
+# 预发布环境应用
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sleep-monitor-staging
+  namespace: argocd
+  labels:
+    environment: staging
+spec:
+  project: sleep-monitor-platform
+  source:
+    repoURL: https://github.com/sleep-monitor/platform.git
+    targetRevision: release/v1.0.0-rc.1
+    path: k8s/overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  # 预发布环境需要人工审批后同步
+  # automated 配置为自动，但关键变更需要审批
+  operations:
+    sync:
+      syncStrategy:
+        hook:
+          force: false
+
+---
+# 生产环境应用
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sleep-monitor-production
+  namespace: argocd
+  labels:
+    environment: production
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: sleep-monitor-platform
+  source:
+    repoURL: https://github.com/sleep-monitor/platform.git
+    targetRevision: v1.0.0
+    path: k8s/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  # 生产环境不自动同步，需要人工审批
+  syncPolicy:
+    automated: {}
+    syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+      - PruneLast=false
+      - RespectIgnoreDifferences=true
+      - Validate=true
+      - CreateNamespace=false
+    retry:
+      limit: 2
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m
+  # 忽略一些动态变化的字段，避免频繁显示 OutOfSync
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+    - group: '*'
+      kind: '*'
+      managedFieldsManagers:
+        - kube-controller-manager
+        - horizontal-pod-autoscaler
+
+---
+# 生产环境同步审批工作流
+# 使用 ArgoCD AppProject 角色和 RBAC 控制同步权限
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: sleep-monitor-production
+  namespace: argocd
+spec:
+  description: 睡眠监测平台生产环境（需要审批）
+  sourceRepos:
+    - 'https://github.com/sleep-monitor/platform.git'
+  destinations:
+    - namespace: 'production'
+      server: https://kubernetes.default.svc
+  # 生产环境同步需要特定角色
+  roles:
+    - name: production-sync-approver
+      description: 可以审批和同步生产环境
+      policies:
+        - p, proj:sleep-monitor-production:production-sync-approver, applications, sync, sleep-monitor-production/*, allow
+        - p, proj:sleep-monitor-production:production-sync-approver, applications, get, sleep-monitor-production/*, allow
+      groups:
+        - engineering-managers
+        - oncall-leads
+    - name: production-viewer
+      description: 可以查看生产环境
+      policies:
+        - p, proj:sleep-monitor-production:production-viewer, applications, get, sleep-monitor-production/*, allow
+      groups:
+        - engineering-team
+
+---
+# 同步窗口配置
+# 生产环境只在维护窗口内允许同步
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+data:
+  # 同步窗口：每周日 02:00-06:00 允许生产环境同步
+  # 其他时间需要手动审批
+  resource.customizations: |
+    argoproj.io/AppProject:
+      ignoreDifferences: |
+        jsonPointers:
+          - /spec/roles
+
+  # 通知配置
+  notifications: |
+    trigger.on-sync-running:
+      - description: Application syncing has started
+        send:
+          - app-sync-status
+        when: app.status.operationState.phase in ['Running']
+    trigger.on-sync-succeeded:
+      - description: Application syncing has succeeded
+        send:
+          - app-sync-status
+        when: app.status.operationState.phase in ['Succeeded']
+    trigger.on-sync-failed:
+      - description: Application syncing has failed
+        send:
+          - app-sync-status
+        when: app.status.operationState.phase in ['Failed']
+    template.app-sync-status:
+      title: "ArgoCD - {{.app.metadata.name}} sync {{.app.status.operationState.phase}}"
+      body: |
+        Application: {{.app.metadata.name}}
+        Environment: {{.app.metadata.labels.environment}}
+        Sync Status: {{.app.status.operationState.phase}}
+        Started At: {{.app.status.operationState.startedAt}}
+        Finished At: {{.app.status.operationState.finishedAt}}
+        Revision: {{.app.status.sync.revision}}

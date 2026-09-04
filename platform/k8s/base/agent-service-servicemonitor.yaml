@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: agent-service
+  namespace: sleep-platform
+  labels:
+    app.kubernetes.io/name: agent-service
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames: [sleep-platform]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-service
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

@@ -1,0 +1,171 @@
+# OTA 异常测试用例
+#
+# 功能：定义 OTA 升级过程中的异常场景测试用例，
+# 确保设备在各种异常情况下能安全恢复。
+
+version: "1.0"
+
+test_cases:
+  # ============================================================
+  # 下载异常
+  # ============================================================
+  - id: OTA-DL-001
+    category: download
+    name: "下载中断恢复"
+    description: "模拟下载过程中网络中断，验证断点续传"
+    preconditions:
+      - "设备已连接 WiFi"
+      - "新版本固件可用"
+    steps:
+      - "开始 OTA 下载"
+      - "下载进度达到 50% 时断开 WiFi"
+      - "等待 30 秒"
+      - "重新连接 WiFi"
+    expected_result:
+      - "设备检测到网络中断"
+      - "重新连接后从断点继续下载"
+      - "最终下载完成并校验通过"
+    priority: high
+
+  - id: OTA-DL-002
+    category: download
+    name: "下载超时"
+    description: "模拟下载速度极慢导致超时"
+    preconditions:
+      - "网络限速到 1KB/s"
+    steps:
+      - "开始 OTA 下载"
+      - "等待超过下载超时时间"
+    expected_result:
+      - "设备触发下载超时"
+      - "取消当前下载"
+      - "保留当前运行固件"
+      - "记录失败原因"
+    priority: medium
+
+  - id: OTA-DL-003
+    category: download
+    name: "固件损坏"
+    description: "下载的固件文件损坏"
+    preconditions:
+      - "服务器提供损坏的固件文件"
+    steps:
+      - "开始 OTA 下载"
+      - "下载完成后进行校验"
+    expected_result:
+      - "CRC32 或 SHA256 校验失败"
+      - "丢弃损坏的固件"
+      - "不切换启动分区"
+      - "上报校验失败事件"
+    priority: critical
+
+  # ============================================================
+  # 签名验证异常
+  # ============================================================
+  - id: OTA-SIG-001
+    category: signature
+    name: "签名验证失败"
+    description: "固件签名无效"
+    preconditions:
+      - "服务器提供签名错误的固件"
+    steps:
+      - "下载固件"
+      - "执行签名验证"
+    expected_result:
+      - "ECDSA 签名验证失败"
+      - "拒绝安装固件"
+      - "上报安全事件"
+    priority: critical
+
+  - id: OTA-SIG-002
+    category: signature
+    name: "防回滚验证"
+    description: "尝试安装低于当前安全版本的固件"
+    preconditions:
+      - "当前安全版本: 2"
+      - "待安装固件安全版本: 1"
+    steps:
+      - "下载低版本固件"
+      - "执行防回滚检查"
+    expected_result:
+      - "检测到版本回退"
+      - "拒绝安装"
+      - "上报防回滚拦截事件"
+    priority: critical
+
+  # ============================================================
+  # 安装异常
+  # ============================================================
+  - id: OTA-INST-001
+    category: install
+    name: "安装中断电"
+    description: "固件安装过程中断电"
+    preconditions:
+      - "固件已下载完成"
+    steps:
+      - "开始安装固件"
+      - "安装进度 50% 时断电"
+      - "重新上电"
+    expected_result:
+      - "设备从原分区启动"
+      - "新分区标记为无效"
+      - "OTA 状态重置"
+    priority: critical
+
+  - id: OTA-INST-002
+    category: install
+    name: "首次启动失败回滚"
+    description: "新固件首次启动失败，自动回滚"
+    preconditions:
+      - "新固件已安装到备用分区"
+    steps:
+      - "切换到新分区启动"
+      - "新固件启动时崩溃"
+      - "Bootloader 检测到启动失败"
+    expected_result:
+      - "Bootloader 自动回滚到原分区"
+      - "原分区固件正常启动"
+      - "新分区标记为无效"
+      - "上报回滚事件"
+    priority: critical
+
+  # ============================================================
+  # 存储异常
+  # ============================================================
+  - id: OTA-STOR-001
+    category: storage
+    name: "Flash 空间不足"
+    description: "OTA 分区空间不足"
+    preconditions:
+      - "OTA 分区已被占用"
+    steps:
+      - "开始 OTA 下载"
+    expected_result:
+      - "检测到空间不足"
+      - "取消下载"
+      - "上报存储不足事件"
+    priority: medium
+
+  - id: OTA-STOR-002
+    category: storage
+    name: "Flash 加密错误"
+    description: "Flash 加密读写错误"
+    preconditions:
+      - "模拟 Flash 加密故障"
+    steps:
+      - "开始 OTA 安装"
+    expected_result:
+      - "检测到加密错误"
+      - "中止安装"
+      - "不破坏原分区"
+    priority: high
+
+# 测试环境配置
+test_environment:
+  target_device: "esp32-s3"
+  firmware_version: "1.0.0"
+  test_tools:
+    - "pytest"
+    - "esptool"
+    - "wireshark"
+  network_simulator: "tc (traffic control)"

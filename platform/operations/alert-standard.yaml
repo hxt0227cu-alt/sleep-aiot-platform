@@ -1,0 +1,326 @@
+# 告警标准配置
+#
+# 定义平台统一的告警规则、级别和通知策略。
+
+version: "1.0"
+
+# 告警级别定义
+severity_levels:
+  critical:
+    description: "严重故障，需要立即响应"
+    response_time: "5分钟"
+    resolution_time: "30分钟"
+    notification:
+      - pagerduty
+      - feishu_urgent
+      - phone_call
+    escalation:
+      - after: "5分钟"
+        to: "oncall_lead"
+      - after: "15分钟"
+        to: "engineering_manager"
+      - after: "30分钟"
+        to: "cto"
+
+  high:
+    description: "高优先级问题，需要尽快响应"
+    response_time: "15分钟"
+    resolution_time: "2小时"
+    notification:
+      - pagerduty
+      - feishu
+    escalation:
+      - after: "30分钟"
+        to: "oncall_lead"
+      - after: "2小时"
+        to: "engineering_manager"
+
+  medium:
+    description: "中等优先级问题，工作时间响应"
+    response_time: "1小时"
+    resolution_time: "8小时"
+    notification:
+      - feishu
+    escalation:
+      - after: "4小时"
+        to: "oncall_lead"
+
+  low:
+    description: "低优先级问题，计划处理"
+    response_time: "1工作日"
+    resolution_time: "3工作日"
+    notification:
+      - email
+    escalation: []
+
+# 告警规则
+alert_rules:
+  # ============================================================
+  # 基础设施告警
+  # ============================================================
+  infrastructure:
+    - name: "NodeNotReady"
+      description: "Kubernetes 节点不可用"
+      severity: critical
+      expr: |
+        kube_node_status_condition{condition="Ready",status="true"} == 0
+      for: "5m"
+      labels:
+        category: infrastructure
+        component: kubernetes
+
+    - name: "PodCrashLooping"
+      description: "Pod 频繁崩溃重启"
+      severity: high
+      expr: |
+        rate(kube_pod_container_status_restarts_total[15m]) > 0.1
+      for: "15m"
+      labels:
+        category: infrastructure
+        component: kubernetes
+
+    - name: "HighCPUUsage"
+      description: "节点 CPU 使用率过高"
+      severity: high
+      expr: |
+        100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+      for: "10m"
+      labels:
+        category: infrastructure
+        component: node
+
+    - name: "HighMemoryUsage"
+      description: "节点内存使用率过高"
+      severity: high
+      expr: |
+        (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+      for: "10m"
+      labels:
+        category: infrastructure
+        component: node
+
+    - name: "DiskSpaceLow"
+      description: "磁盘空间不足"
+      severity: critical
+      expr: |
+        (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+      for: "5m"
+      labels:
+        category: infrastructure
+        component: storage
+
+  # ============================================================
+  # 服务告警
+  # ============================================================
+  services:
+    - name: "BackendAPIHighErrorRate"
+      description: "后端 API 错误率过高"
+      severity: critical
+      expr: |
+        sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) * 100 > 5
+      for: "5m"
+      labels:
+        category: service
+        component: backend-api
+
+    - name: "BackendAPIHighLatency"
+      description: "后端 API 延迟过高"
+      severity: high
+      expr: |
+        histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+      for: "10m"
+      labels:
+        category: service
+        component: backend-api
+
+    - name: "MQTTBrokerDown"
+      description: "MQTT Broker 不可用"
+      severity: critical
+      expr: |
+        emqx_connected == 0
+      for: "2m"
+      labels:
+        category: service
+        component: mqtt
+
+    - name: "MQTTMassOffline"
+      description: "MQTT 设备大规模离线"
+      severity: critical
+      expr: |
+        (emqx_connected < 1000) and (increase(emqx_connected[5m]) < -500)
+      for: "5m"
+      labels:
+        category: service
+        component: mqtt
+
+    - name: "PostgreSQLDown"
+      description: "PostgreSQL 不可用"
+      severity: critical
+      expr: |
+        pg_up == 0
+      for: "2m"
+      labels:
+        category: service
+        component: postgresql
+
+    - name: "PostgreSQLReplicationLag"
+      description: "PostgreSQL 复制延迟过高"
+      severity: high
+      expr: |
+        pg_replication_lag_seconds > 1
+      for: "5m"
+      labels:
+        category: service
+        component: postgresql
+
+    - name: "RedisDown"
+      description: "Redis 不可用"
+      severity: high
+      expr: |
+        redis_up == 0
+      for: "2m"
+      labels:
+        category: service
+        component: redis
+
+    - name: "KafkaLagHigh"
+      description: "Kafka 消费者延迟过高"
+      severity: high
+      expr: |
+        sum(kafka_consumergroup_lag) by (consumergroup) > 10000
+      for: "10m"
+      labels:
+        category: service
+        component: kafka
+
+    - name: "VaultDown"
+      description: "Vault 不可用"
+      severity: critical
+      expr: |
+        vault_up == 0
+      for: "2m"
+      labels:
+        category: service
+        component: vault
+
+  # ============================================================
+  # 业务告警
+  # ============================================================
+  business:
+    - name: "AlarmDetectionAccuracyDrop"
+      description: "报警检测准确率下降"
+      severity: high
+      expr: |
+        sli_alarm_accuracy < 90
+      for: "1h"
+      labels:
+        category: business
+        component: alarm-service
+
+    - name: "OTAUpgradeFailureRateHigh"
+      description: "OTA 升级失败率过高"
+      severity: high
+      expr: |
+        (1 - sli_ota_success_rate) * 100 > 10
+      for: "1h"
+      labels:
+        category: business
+        component: ota-service
+
+    - name: "DeviceOnlineRateDrop"
+      description: "设备在线率下降"
+      severity: critical
+      expr: |
+        (emqx_connected / device_total) * 100 < 80
+      for: "10m"
+      labels:
+        category: business
+        component: iot
+
+    - name: "DataIngestionFailure"
+      description: "数据摄入失败率过高"
+      severity: high
+      expr: |
+        (1 - sli_ingestion_success) * 100 > 1
+      for: "15m"
+      labels:
+        category: business
+        component: data-pipeline
+
+  # ============================================================
+  # 安全告警
+  # ============================================================
+  security:
+    - name: "FailedLoginSpike"
+      description: "登录失败次数激增"
+      severity: high
+      expr: |
+        rate(login_failures_total[5m]) > 100
+      for: "5m"
+      labels:
+        category: security
+        component: auth
+
+    - name: "SecretAccessAnomaly"
+      description: "Secret 访问异常"
+      severity: critical
+      expr: |
+        rate(vault_audit_logs_total[5m]) > 1000
+      for: "5m"
+      labels:
+        category: security
+        component: vault
+
+    - name: "CertificateExpiringSoon"
+      description: "证书即将过期"
+      severity: medium
+      expr: |
+        (x509_cert_not_after - time()) < 86400 * 30
+      for: "1h"
+      labels:
+        category: security
+        component: pki
+
+    - name: "NewAdminUserCreated"
+      description: "新管理员用户创建"
+      severity: critical
+      expr: |
+        increase(admin_user_created_total[5m]) > 0
+      for: "0m"
+      labels:
+        category: security
+        component: auth
+
+# 通知策略
+notification_policy:
+  feishu:
+    webhook: "${FEISHU_ALERT_WEBHOOK}"
+    message_template: |
+      **[{{ .Status }}] {{ .Labels.alertname }}**
+      级别: {{ .Labels.severity }}
+      组件: {{ .Labels.component }}
+      描述: {{ .Annotations.description }}
+      时间: {{ .StartsAt }}
+
+  pagerduty:
+    service_key: "${PAGERDUTY_SERVICE_KEY}"
+    severity_mapping:
+      critical: critical
+      high: warning
+      medium: info
+      low: info
+
+  email:
+    to: "oncall@sleep-monitor.com"
+    from: "alerts@sleep-monitor.com"
+
+# 静默规则
+silence_rules:
+  - name: "maintenance-window"
+    matchers:
+      - name: "category"
+        value: "infrastructure"
+    starts_at: "02:00"
+    ends_at: "06:00"
+    days: ["sunday"]
+    comment: "每周日凌晨维护窗口"

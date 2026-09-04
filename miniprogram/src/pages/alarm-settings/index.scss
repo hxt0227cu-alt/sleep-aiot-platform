@@ -1,0 +1,383 @@
+.alarm-settings-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #2d1b0e 0%, #1a0f08 100%);
+  padding: 20px;
+  padding-bottom: 80px;
+  box-sizing: border-box;
+
+  .header-section {
+    margin-bottom: 20px;
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  .alarm-list {
+    height: calc(100vh - 120px);
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+
+      .empty-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+      }
+
+      .empty-text {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 24px;
+      }
+
+      .empty-action {
+        padding: 12px 24px;
+        background: #f59e0b;
+        border-radius: 8px;
+
+        .action-text {
+          font-size: 16px;
+          color: #ffffff;
+          font-weight: 500;
+        }
+      }
+    }
+
+    .alarm-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+
+      &:active {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .alarm-main {
+        flex: 1;
+
+        .alarm-time-section {
+          margin-bottom: 8px;
+
+          .alarm-time {
+            font-size: 32px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-right: 12px;
+          }
+
+          .alarm-repeat {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+          }
+        }
+
+        .alarm-info {
+          .alarm-name {
+            font-size: 16px;
+            color: #ffffff;
+            margin-bottom: 8px;
+          }
+
+          .alarm-features {
+            display: flex;
+            gap: 8px;
+
+            .feature-tag {
+              display: flex;
+              align-items: center;
+              padding: 4px 8px;
+              background: rgba(245, 158, 11, 0.2);
+              border-radius: 4px;
+
+              .feature-icon {
+                font-size: 12px;
+                margin-right: 4px;
+              }
+
+              .feature-text {
+                font-size: 12px;
+                color: #f59e0b;
+              }
+            }
+          }
+        }
+      }
+
+      .alarm-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+
+        .alarm-switch {
+          width: 50px;
+          height: 28px;
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 8px;
+
+          .action-button {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+
+            &.edit {
+              background: rgba(59, 130, 246, 0.2);
+
+              &:active {
+                background: rgba(59, 130, 246, 0.3);
+              }
+            }
+
+            &.delete {
+              background: rgba(239, 68, 68, 0.2);
+
+              &:active {
+                background: rgba(239, 68, 68, 0.3);
+              }
+            }
+
+            .action-icon {
+              font-size: 16px;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .add-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: #f59e0b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    z-index: 100;
+
+    .add-icon {
+      font-size: 32px;
+      color: #ffffff;
+      font-weight: 300;
+    }
+  }
+}
+
+.alarm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+
+  .modal-content {
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    background: #2d1b0e;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #ffffff;
+      }
+
+      .close-button {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+
+        .close-icon {
+          font-size: 20px;
+          color: #ffffff;
+        }
+      }
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+
+      .form-section {
+        margin-bottom: 24px;
+
+        .section-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #ffffff;
+          margin-bottom: 16px;
+        }
+
+        .form-item {
+          margin-bottom: 16px;
+
+          &.switch-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+
+            .switch-label {
+              .label-text {
+                font-size: 14px;
+                color: #ffffff;
+                margin-bottom: 4px;
+              }
+
+              .label-desc {
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.6);
+              }
+            }
+          }
+        }
+
+        .form-label {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.8);
+          margin-bottom: 8px;
+          display: block;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 12px;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          color: #ffffff;
+          font-size: 16px;
+          box-sizing: border-box;
+        }
+
+        .repeat-days {
+          display: flex;
+          gap: 8px;
+
+          .repeat-day {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+
+            &.active {
+              background: rgba(245, 158, 11, 0.2);
+              border-color: #f59e0b;
+            }
+
+            .day-label {
+              font-size: 14px;
+              color: #ffffff;
+            }
+          }
+        }
+
+        .sound-types {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+
+          .sound-type {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+
+            &.active {
+              background: rgba(245, 158, 11, 0.2);
+              border-color: #f59e0b;
+            }
+
+            .type-label {
+              font-size: 14px;
+              color: #ffffff;
+            }
+          }
+        }
+      }
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      padding: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+      .modal-button {
+        flex: 1;
+        padding: 14px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+
+        &.cancel {
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+        }
+
+        &.confirm {
+          background: #f59e0b;
+          color: #ffffff;
+        }
+      }
+    }
+  }
+}

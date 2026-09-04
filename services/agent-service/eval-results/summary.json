@@ -1,0 +1,29 @@
+{
+  "evidence": "simulated",
+  "datasetVersion": "evaluation-v1",
+  "cases": 84,
+  "passed": 84,
+  "failed": 0,
+  "taskSuccessRate": 1.0,
+  "dimensions": {
+    "answerCorrectnessRate": 1.0,
+    "citationAccuracyRate": 1.0,
+    "properRefusalRate": 1.0,
+    "toolSelectionAccuracy": 1.0,
+    "unauthorizedCallRate": 0.0,
+    "healthComplianceRate": 0.7143,
+    "latency": {
+      "p50Ms": 2.59,
+      "p95Ms": 3.8,
+      "avgMs": 3.12
+    },
+    "cost": {
+      "totalInputTokens": 1456,
+      "totalOutputTokens": 18500,
+      "totalTokens": 19956,
+      "avgTokensPerRun": 237.6
+    }
+  },
+  "toolSelectionAccuracy": 1.0,
+  "approvalBypassRate": 0.0
+}

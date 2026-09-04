@@ -1,0 +1,257 @@
+# UI 文案标准
+#
+# 定义产品中所有用户可见文案的规范，确保一致性、合规性和专业性。
+
+version: "1.0"
+last_updated: "2026-08-01"
+
+# 基本原则
+principles:
+  - name: "准确"
+    description: "文案必须准确传达信息，不夸大、不误导"
+  - name: "简洁"
+    description: "用最少的文字传达完整信息，避免冗余"
+  - name: "友好"
+    description: "语气温和，避免生硬和命令式"
+  - name: "合规"
+    description: "符合医疗合规要求，不做诊断和治疗承诺"
+  - name: "一致"
+    description: "相同概念使用相同表述，保持全产品一致"
+
+# 禁用词汇
+forbidden_words:
+  # 医疗诊断类
+  - category: "医疗诊断"
+    words: ["诊断", "确诊", "患有", "得了", "治疗", "治愈", "疗效", "处方", "开药", "医嘱"]
+    reason: "产品不是医疗器械，不能做医疗诊断和治疗"
+    alternative: "提示", "建议", "参考", "可能", "关注"
+
+  # 绝对化用语
+  - category: "绝对化用语"
+    words: ["100%", "完全", "绝对", "一定", "肯定", "必然", "保证", "确保", "永不", "完美"]
+    reason: "广告法禁止使用绝对化用语"
+    alternative: "高", "较好", "通常", "一般", "大概率"
+
+  # 医疗效果承诺
+  - category: "效果承诺"
+    words: ["改善睡眠", "治疗失眠", "提高睡眠质量", "解决睡眠问题", "根治"]
+    reason: "不能承诺医疗效果"
+    alternative: "帮助了解睡眠", "提供睡眠数据参考", "记录睡眠情况"
+
+  # 恐吓性用语
+  - category: "恐吓性用语"
+    words: ["危险", "致命", "危及生命", "严重疾病", "绝症", "死亡"]
+    reason: "避免引起用户恐慌，除非真正紧急"
+    alternative: "需要关注", "建议检查", "可能存在风险"
+
+# 推荐用词
+recommended_words:
+  # 数据描述
+  - category: "数据描述"
+    words: ["监测到", "记录到", "显示", "提示", "估算", "参考值"]
+    use_case: "描述设备监测到的数据时使用"
+
+  # 建议类
+  - category: "建议类"
+    words: ["建议", "可以尝试", "推荐", "有助于", "可能帮助"]
+    use_case: "提供生活方式建议时使用"
+
+  # 提醒类
+  - category: "提醒类"
+    words: ["请注意", "提醒您", "建议关注", "建议就医", "建议咨询医生"]
+    use_case: "数据异常或需要用户注意时使用"
+
+  # 免责类
+  - category: "免责类"
+    words: ["仅供参考", "不能替代专业诊断", "如有疑虑请咨询医生"]
+    use_case: "涉及健康数据解读时使用"
+
+# 标准文案模板
+templates:
+  # 报警通知
+  alarm_notification:
+    title: "睡眠异常提醒"
+    body: "监测到您在睡眠中出现{alarm_type}，持续{duration}。建议关注，如频繁出现请咨询医生。"
+    severity_levels:
+      low:
+        title: "睡眠数据提醒"
+        body: "您的{metric}在睡眠中略有异常，建议关注。"
+      medium:
+        title: "睡眠异常提醒"
+        body: "监测到您的{metric}在睡眠中出现异常，建议关注，如频繁出现请咨询医生。"
+      high:
+        title: "睡眠异常提醒"
+        body: "监测到您的{metric}在睡眠中明显异常，建议尽快就医检查。"
+      critical:
+        title: "紧急健康提醒"
+        body: "监测到您的{metric}严重异常，如感到不适请立即拨打120，否则建议尽快就医。"
+
+  # 数据报告
+  sleep_report:
+    title: "昨晚睡眠报告"
+    summary: "您昨晚睡眠{duration}，睡眠质量评分{score}分，{quality_level}。"
+    quality_levels:
+      excellent: "睡眠质量优秀"
+      good: "睡眠质量良好"
+      fair: "睡眠质量一般"
+      poor: "睡眠质量较差"
+    disclaimer: "以上数据仅供参考，不能替代专业医疗诊断。"
+
+  # 健康建议
+  health_advice:
+    prefix: "根据您的睡眠数据，建议："
+    suffix: "以上建议仅供参考，如症状持续请咨询医生。"
+    examples:
+      - "保持规律作息，每天在相同时间入睡和起床"
+      - "睡前1小时避免使用电子设备"
+      - "卧室保持安静、黑暗和适宜温度"
+      - "避免睡前摄入咖啡因和酒精"
+      - "适当运动有助于改善睡眠，但避免睡前剧烈运动"
+
+  # 就医提醒
+  medical_reminder:
+    title: "就医建议"
+    body: "您近期的睡眠数据持续异常，建议咨询{department}医生进行专业检查。"
+    departments:
+      sleep: "睡眠医学科"
+      cardiology: "心内科"
+      respiratory: "呼吸科"
+      general: "全科"
+    disclaimer: "以上仅为就医方向建议，具体诊断和治疗请以医生意见为准。"
+
+  # 设备状态
+  device_status:
+    online: "设备在线"
+    offline: "设备离线"
+    low_battery: "设备电量低（{percent}%），请及时充电"
+    charging: "设备充电中"
+    firmware_update: "固件更新可用"
+    data_syncing: "数据同步中"
+
+  # 错误提示
+  error_messages:
+    network_error: "网络连接失败，请检查网络后重试"
+    server_error: "服务暂时不可用，请稍后重试"
+    device_offline: "设备当前离线，无法执行操作"
+    permission_denied: "权限不足，请联系管理员"
+    data_not_found: "暂无数据"
+    invalid_input: "输入信息有误，请检查后重试"
+
+  # 空状态
+  empty_states:
+    no_sleep_data: "还没有睡眠数据，佩戴设备入睡后即可查看"
+    no_alarm: "暂无报警记录"
+    no_device: "还没有绑定设备，点击绑定设备"
+    no_report: "报告生成中，请稍后查看"
+
+# 页面标题标准
+page_titles:
+  home: "首页"
+  sleep_report: "睡眠报告"
+  alarm: "报警记录"
+  device: "设备管理"
+  profile: "我的"
+  settings: "设置"
+  privacy_center: "隐私中心"
+  about: "关于我们"
+  help: "帮助中心"
+  feedback: "意见反馈"
+
+# 按钮文案标准
+button_text:
+  confirm: "确认"
+  cancel: "取消"
+  submit: "提交"
+  save: "保存"
+  delete: "删除"
+  edit: "编辑"
+  view: "查看"
+  more: "更多"
+  back: "返回"
+  next: "下一步"
+  done: "完成"
+  retry: "重试"
+  refresh: "刷新"
+  load_more: "加载更多"
+  bind_device: "绑定设备"
+  unbind_device: "解绑设备"
+  upgrade_firmware: "升级固件"
+  export_data: "导出数据"
+  share_data: "分享数据"
+
+# 数字和单位规范
+number_format:
+  heart_rate:
+    unit: "次/分钟"
+    abbreviation: "bpm"
+    decimals: 0
+  respiration_rate:
+    unit: "次/分钟"
+    abbreviation: "rpm"
+    decimals: 0
+  spo2:
+    unit: "%"
+    decimals: 0
+  sleep_duration:
+    unit: "小时"
+    format: "{hours}小时{minutes}分钟"
+  sleep_score:
+    unit: "分"
+    range: "0-100"
+    decimals: 0
+  temperature:
+    unit: "°C"
+    decimals: 1
+  date_format: "YYYY年MM月DD日"
+  time_format: "HH:mm"
+
+# 免责声明标准
+disclaimers:
+  general:
+    text: "本产品提供的睡眠监测数据和分析仅供参考，不能替代专业医疗诊断、治疗或医生建议。如有任何健康疑虑或症状持续，请及时咨询专业医生。"
+    position: "涉及健康数据的页面底部"
+
+  alarm:
+    text: "报警功能基于算法检测，可能存在误报或漏报。报警信息仅供参考，不能作为医疗诊断依据。如收到报警后感到不适，请立即就医或拨打120急救电话。"
+    position: "报警相关页面"
+
+  data_limitations:
+    text: "睡眠监测数据可能受到设备佩戴位置、环境干扰、个体差异等因素影响，数据准确性有一定限制。数据仅供个人健康管理参考，不应用于医疗诊断或治疗决策。"
+    position: "数据报告页面"
+
+  ai_assistant:
+    text: "AI 助手提供的信息仅供参考，不构成医疗建议。如有健康问题，请咨询专业医生。"
+    position: "AI 对话页面"
+
+# 多语言支持
+i18n:
+  zh_CN:
+    description: "简体中文（默认）"
+  en_US:
+    description: "英语"
+    note: "海外版本使用，需注意不同地区的合规要求"
+
+# 审核流程
+review_process:
+  steps:
+    - step: "文案撰写"
+      responsible: "产品/设计"
+    - step: "合规审核"
+      responsible: "法务/合规"
+      check_points:
+        - "是否包含禁用词汇"
+        - "是否涉及医疗边界"
+        - "是否有绝对化用语"
+        - "是否有免责声明"
+    - step: "医疗顾问审核"
+      responsible: "医疗顾问"
+      check_points:
+        - "医学表述是否准确"
+        - "建议是否合理"
+        - "是否有误导性表述"
+    - step: "最终确认"
+      responsible: "产品负责人"
+  tools:
+    - "敏感词检测工具"
+    - "文案审核 Checklist"
+    - "版本管理（记录文案变更历史）"
