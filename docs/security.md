@@ -13,40 +13,45 @@ and is verified by CI on every push.
   (they cannot be patched by us).
 - **Secrets (Trivy `secret`)**: hardcoded credentials, tokens and private keys
   anywhere in the repository fail the build.
+- **Infrastructure misconfigurations (Trivy `misconfig`)**: any KSV finding
+  fails the build (hard gate). The only findings that ever appear are the
+  documented by-design exceptions, which are exempted **inline** with
+  `#trivy:ignore` comments on the exact resources (see below). Any new KSV
+  finding — for example a future manifest that forgets the hardening — turns
+  the `security` job red, so the hardening cannot silently regress.
 - **Repeatedly verified**: these scans run on every push to `main` and on every
   pull request touching `services/**`, `platform/**` or the workflow itself.
 
-## What CI reports but does not fail (advisory)
+## By-design exceptions (exempted inline)
 
-Infrastructure **misconfigurations** (Trivy `misconfig`, e.g. KSV-0014 /
-KSV-0118 / KSV-0041 / KSV-0046) are printed in the job log and uploaded as a
-SARIF artifact for every run (`trivy-results.sarif`). They do not fail the
-build because the small remaining set is by design, and a blind fix would
-break the manifests:
+The following resources carry `#trivy:ignore` comments in the source manifests,
+so the hard gate stays green while every *other* finding still fails the build.
+Removing or weakening an exemption (or adding a new manifest without hardening)
+will fail CI:
 
 - **External Secrets operator** needs `create/update/patch/delete` on
   `secrets` to synchronize SecretStores into the cluster. Restricting this
   ClusterRole would disable the operator; the correct scope control is
   enforced at the `ClusterSecretStore` level with namespace-scoped
-  `ServiceAccount` bindings (KSV-0041 is therefore a documented by-design
-  exception; the unrelated KSV-0046 wildcard rule has been narrowed — see
-  checklist).
+  `ServiceAccount` bindings. Exempted inline in
+  `platform/k8s/base/external-secrets.yaml` (KSV-0041). The unrelated KSV-0046
+  wildcard rule has been narrowed (see checklist).
 - **Sealed Secrets controller** (`secrets-unsealer`) needs cluster-wide
   `secrets` write access by design: it unseals a `SealedSecret` into whichever
-  namespace the resource lives in. This is the documented by-design exception
-  for KSV-0041.
+  namespace the resource lives in. Exempted inline in
+  `platform/k8s/base/sealed-secrets-bootstrap.yaml` (KSV-0041).
 - **`kube-system` KMS plugin** (`kms-plugin` DaemonSet) is the control-plane
   etcd-encryption socket peer. It requires a `hostPath` socket and runs the
   upstream Aliyun image as root; forcing non-root would risk breaking the API
-  server's encryption path. It is tracked as a by-design exception (see
-  checklist).
-- **Stateful images** (`postgres`, `clickhouse`, `kafka`, `redis`, `vault`)
-  run as their own well-known non-root users and write to mounted volumes.
-  `readOnlyRootFilesystem: true` / `runAsNonRoot` are only safe when paired
-  with writable `emptyDir` mounts (e.g. `/tmp`, `/var/run`) and the matching
-  per-image `runAsUser`. That pairing is now in place (see checklist); a
-  runtime smoke test in a real cluster is still recommended before production
-  rollout because CI only validates the manifests, not the runtime behaviour.
+  server's encryption path. Exempted inline in
+  `platform/k8s/base/etcd-encryption-config.yaml` (KSV-0014 / KSV-0118).
+
+**Stateful images** (`postgres`, `clickhouse`, `kafka`, `redis`, `vault`) are
+**not** exempted — they are hardened like everything else:
+`readOnlyRootFilesystem: true` / `runAsNonRoot` paired with the matching
+writable `emptyDir` mounts and per-image `runAsUser`. CI validates the
+manifests; a runtime smoke suite in a real cluster validates the behaviour
+(see [Runtime smoke](#runtime-smoke)).
 
 ## Hardening checklist (executable)
 
@@ -114,14 +119,33 @@ left unchanged.
 | `secrets-unsealer` ClusterRole, KSV-0041 | `platform/k8s/base/sealed-secrets-bootstrap.yaml` | **By design**: Sealed Secrets unseals into arbitrary namespaces |
 | `secret-reader` / `secret-manager` / `secret-auditor` ClusterRoles, KSV-0041 | `platform/k8s/base/secret-rbac.yaml` | **Fixed**: removed — they were dead policy (never referenced by any `ClusterRoleBinding`). Actual access uses the namespaced `Role`s with `resourceNames` (`backend-secret-reader`, `iot-secret-reader`, `database-secret-manager`) |
 
-### 4. Scan hygiene — generated bundle excluded
+### 4. Scan hygiene — generated bundle untracked
 
-`platform/k8s/rendered/alicloud-validation.yaml` is a generated deployment
-bundle (produced by `platform/k8s/scripts/New-DeploymentBundle.ps1`), not
-source. It was surfacing duplicate findings from a stale snapshot. Both the
-Trivy `misconfig` step and the SARIF step now pass
-`skip-dirs: platform/k8s/rendered`; regenerate the bundle after future
-hardening changes with `New-DeploymentBundle.ps1`.
+`platform/k8s/rendered/` holds a generated deployment bundle (produced by
+`platform/k8s/scripts/New-DeploymentBundle.ps1` with real ACR digests and
+CIDRs at deploy time), not source. It is no longer tracked in git
+(`.gitignore`), so a stale snapshot can never resurface duplicate findings or
+drift from the hardened `base/`. The Trivy `skip-dirs` entry remains as a
+safety net for locally generated bundles. CI validates the source of truth
+(`overlays/validation` and `overlays/alicloud-validation` render cleanly) in
+the `deployment-contracts` job.
+
+## Runtime smoke
+
+CI validates **manifests**, not **runtime behaviour** — a read-only root
+filesystem only proves it can be deployed if the workload still starts and
+writes where it needs to. The runtime half is covered by an executable smoke
+suite that runs on a real cluster (staging / ACK validation / kind / k3s):
+
+- **Script**: `platform/k8s/scripts/smoke/run-smoke.sh` (+ `lib.sh`)
+- **Checks per workload**: rollout readiness → runs as non-root → root
+  filesystem read-only → matching `emptyDir` writable → functional probe
+  (`SELECT 1`, postgres round-trip, `SET/GET/DEL`, `/v1/sys/health`, ...).
+- **CronJobs**: static securityContext assertion for all four, plus an
+  opt-in `--trigger-cronjobs` backfill for the non-control-plane ones.
+- **CI**: `k8s-runtime-smoke` job (workflow_dispatch only, gated on the
+  `KUBE_CONFIG` secret) runs it against a real cluster.
+- **Usage & matrix**: [docs/k8s-runtime-smoke.md](k8s-runtime-smoke.md)
 
 ## How to verify
 
@@ -130,19 +154,21 @@ hardening changes with `New-DeploymentBundle.ps1`.
 kustomize build platform/k8s/overlays/validation
 kustomize build platform/k8s/overlays/alicloud-validation
 
-# 2. Misconfiguration scan (CI security job) — expect the remaining findings to
-#    be only the documented by-design exceptions above
+# 2. Misconfiguration scan (CI security job, hard gate) — the inline
+#    #trivy:ignore exemptions keep the by-design resources green; anything
+#    else fails the build
 trivy fs --scanners misconfig --severity HIGH,CRITICAL --skip-dirs platform/k8s/rendered .
 
-# 3. Recommended before production: smoke-test the stateful workloads in a real
-#    cluster (postgres/clickhouse/kafka/redis/vault) — CI validates manifests,
-#    not runtime behaviour.
+# 3. Runtime behaviour on a real cluster (CI k8s-runtime-smoke job, or locally)
+bash platform/k8s/scripts/smoke/run-smoke.sh
+bash platform/k8s/scripts/smoke/run-smoke.sh --trigger-cronjobs
 ```
 
-Remaining findings after this change should be limited to the by-design
-exceptions documented above (`kms-plugin` KSV-0014/KSV-0118, `external-secrets`
-KSV-0041, `secrets-unsealer` KSV-0041). See the CI `security` job log for the
-authoritative count on each commit.
+Because of the inline `#trivy:ignore` exemptions, the `security` job misconfig
+step reports **zero remaining findings** on a clean run; the by-design
+exceptions above are the only resources that carry an exemption. The SARIF
+artifact (`trivy-results.sarif`) still records them for review. See the CI
+`security` job log for the authoritative result on each commit.
 
 ## Reporting
 
