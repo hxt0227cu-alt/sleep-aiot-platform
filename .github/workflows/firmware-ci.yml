@@ -1,0 +1,34 @@
+name: Firmware CI
+
+on:
+  push:
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware-ci.yml'
+  pull_request:
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware-ci.yml'
+  workflow_dispatch:
+
+# Compiles the ESP32-S3 firmware with the official ESP-IDF toolchain image.
+# The firmware is source-only (no hardware-in-the-loop); this job keeps the
+# source continuously buildable so it cannot silently drift. See ADR-005.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build firmware (ESP32-S3, ESP-IDF release-v5.4)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}":/project \
+            -w /project/firmware \
+            espressif/idf:release-v5.4 \
+            bash -lc "idf.py set-target esp32s3 && idf.py build"
+
+      - name: Report build artifacts
+        run: |
+          ls -lh firmware/build/*.bin firmware/build/*.elf 2>/dev/null || true

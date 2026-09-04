@@ -1106,7 +1106,7 @@ idf.py build
 
 ### C. 目录结构
 
-部署相关主路径如下；完整 owner 与门禁以 `.harness/wiki/service-catalog.md` 为准：
+部署相关主路径如下；模块边界以 `docs/current-architecture.md` 和源码为准：
 
 - `backend/`：业务 API、Prisma 与后端容器配置。
 - `services/`：遥测、实时处理、特征与 Agent 等独立服务。

@@ -3,6 +3,8 @@
 [![Backend CI](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/backend-ci.yml)
 [![Enterprise Platform CI](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/enterprise-platform-ci.yml/badge.svg)](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/enterprise-platform-ci.yml)
 [![Miniprogram CI](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/miniprogram-ci.yml/badge.svg)](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/miniprogram-ci.yml)
+[![Firmware CI](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/firmware-ci.yml/badge.svg)](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/firmware-ci.yml)
+[![Web CI](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/web-ci.yml/badge.svg)](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/web-ci.yml)
 
 An end-to-end **smart sleep monitoring lamp** reference implementation: an ESP32‑S3 edge device (mmWave radar, audio, lighting, alarm) connected over MQTT to a multi‑tenant cloud platform that combines a NestJS control plane, a Kafka/Flink/ClickHouse streaming data plane, a RAG‑backed sleep assistant, and a WeChat mini‑program / web client.
 
@@ -126,7 +128,9 @@ GitHub Actions workflows are included:
 
 - `backend-ci.yml` — backend type-check, unit tests, build, image sign (cosign), platform manifest validation (kustomize + promtool).
 - `miniprogram-ci.yml` — mini-program lint / type-check / test / build.
-- `enterprise-platform-ci.yml` — data-platform & agent regression checks.
+- `web-ci.yml` — web client (Vite/React) build + Vitest smoke tests.
+- `firmware-ci.yml` — ESP32-S3 firmware compile against the ESP-IDF toolchain image.
+- `enterprise-platform-ci.yml` — data-platform & agent regression checks, security hard gates, on-demand K8s runtime smoke.
 
 ## Status & known limits
 
@@ -135,7 +139,7 @@ GitHub Actions workflows are included:
 
 ## Documentation
 
-- [Architecture overview](docs/architecture.md) (Chinese)
+- [Current architecture](docs/current-architecture.md) (Chinese) · [Historical planning notes](docs/architecture.md)
 - [Product requirements](docs/product-requirements.md) (Chinese)
 - [API & database design](backend/docs/API_Design.md), [database design](backend/docs/Database_Design.md), [MQTT protocol](backend/docs/MQTT_Protocol.md)
 - [Hardware: radar protocol](docs/hardware/r60abd1-protocol.md) · [GSM](docs/hardware/sim800c-gsm.md) · [audio](docs/hardware/max98357-audio.md) · [microphone](docs/hardware/ics-43434-microphone.md)

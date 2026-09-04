@@ -39,7 +39,7 @@ The budget is computed from the instance, not from what feels comfortable:
 
 The reserves are not optional. A platform that cannot open a session to run a migration or diagnose an incident while saturated has converted a load problem into an outage.
 
-Every service with a pool gets a row in a connection budget table maintained alongside `202607worklog/architecture/01-capacity-model.md`. Raising `maxReplicas` requires updating that table in the same change. This is the point: the autoscaler ceiling and the database ceiling are one decision, and today they are made in two files by two people who never meet.
+Every service with a pool gets a row in a connection budget table maintained alongside the declared capacity model. Raising `maxReplicas` requires updating that table in the same change. This is the point: the autoscaler ceiling and the database ceiling are one decision, and today they are made in two files by two people who never meet.
 
 ### PgBouncer is an admission requirement, not an optimisation
 
@@ -96,7 +96,7 @@ Neither is fixed by this ADR. Both are recorded because a connection budget deri
 - **Deploy PgBouncer immediately for all services.** Rejected as premature: at current replica counts, an explicit `connection_limit` alone resolves the exhaustion risk, and PgBouncer's session-mode restrictions are a real constraint on future design. Introduce it against a measured threshold, not pre-emptively.
 - **Use Prisma's `@prisma/adapter-pg` with an application-managed `pg` pool.** Attractive because it makes pooling explicit in code. Rejected for now because the installed adapter is a major version ahead of the client, so adopting it is a Prisma upgrade wearing a different hat. Track the version mismatch as its own cleanup.
 - **Session-mode PgBouncer to preserve full PostgreSQL semantics.** Rejected because it holds one server connection per client connection, which does not reduce the count and therefore does not address the problem.
-- **Adopt read replicas now.** Rejected: it adds connections rather than bounding them, and `202607worklog/architecture/01-capacity-model.md` already states that sharding and similar measures wait for measured saturation. The same discipline applies here.
+- **Adopt read replicas now.** Rejected: it adds connections rather than bounding them, and the declared capacity model already states that sharding and similar measures wait for measured saturation. The same discipline applies here.
 
 ## Verification status
 

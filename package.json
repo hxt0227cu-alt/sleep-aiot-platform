@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "test": "vitest run",
     "dev": "vite",
     "backend:dev": "npm --prefix backend run start:dev",
     "backend:dev:lan": "cd backend && set \"HOST=0.0.0.0\" && set \"PORT=3000\" && npm run start:dev",
@@ -76,9 +77,13 @@
     "@capacitor/cli": "^7.6.5",
     "@capacitor/core": "^7.6.5",
     "@tailwindcss/vite": "4.1.12",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@vitejs/plugin-react": "4.7.0",
+    "jsdom": "^30.0.1",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "vite": "6.3.5",
+    "vitest": "^3.2.7"
   },
   "peerDependencies": {
     "react": "18.3.1",

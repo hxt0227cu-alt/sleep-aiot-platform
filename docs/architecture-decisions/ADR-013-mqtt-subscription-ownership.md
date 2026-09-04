@@ -32,7 +32,7 @@ The client identity still compounds it: `MqttService` uses `clientId: nestjs-bac
 
 ### Topic ownership is explicit and single-owner
 
-Each uplink topic has exactly one consuming service. Ownership is recorded here and mirrored into `.harness/wiki/service-catalog.md`.
+Each uplink topic has exactly one consuming service. Ownership is recorded here and mirrored into `docs/current-architecture.md`.
 
 | Topic | Direction | Owner | Backend action |
 | --- | --- | --- | --- |

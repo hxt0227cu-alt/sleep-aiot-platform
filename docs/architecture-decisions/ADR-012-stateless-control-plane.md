@@ -8,7 +8,7 @@ Supersedes nothing. Governs ADR-013, ADR-014, ADR-015 and ADR-016.
 
 ## Context
 
-At the 2026-07-31 decision snapshot, the deployment topology already asserted that `backend` was horizontally scalable: `backend-deployment.yaml` declared three replicas, `backend-autoscaling.yaml` allowed three to twenty replicas, and `backend-pdb.yaml` required at least two available replicas. The capacity model in `202607worklog/architecture/01-capacity-model.md` targets 99.95% core API availability, which is not reachable on a single replica.
+At the 2026-07-31 decision snapshot, the deployment topology already asserted that `backend` was horizontally scalable: `backend-deployment.yaml` declared three replicas, `backend-autoscaling.yaml` allowed three to twenty replicas, and `backend-pdb.yaml` required at least two available replicas. The declared capacity model targets 99.95% core API availability, which is not reachable on a single replica.
 
 At that snapshot, the running code did not satisfy that assertion. Relevant implementation sites were:
 
@@ -74,7 +74,7 @@ This contract governs `backend/` only. `services/telemetry-ingest/` and `service
 
 ### Neutral but explicit
 
-This contract does not make `backend` a microservice fleet and does not authorise extracting modules. The modular monolith decision in ADR-001 and `202607worklog/architecture/ENTERPRISE_ARCHITECTURE.md` stands. Statelessness is a property of the process, not an argument for splitting it.
+This contract does not make `backend` a microservice fleet and does not authorise extracting modules. The modular monolith decision in ADR-001 and the declared enterprise architecture stands. Statelessness is a property of the process, not an argument for splitting it.
 
 ## Rejected alternatives
 

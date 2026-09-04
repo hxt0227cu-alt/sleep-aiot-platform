@@ -1,6 +1,6 @@
 # 智能睡眠仪项目架构规划
 
-> **历史规划文档**：本文保留早期设计意图，不代表当前目录和运行实现。当前架构事实以 `.harness/wiki/architecture.md`、`.harness/wiki/service-catalog.md`、源码和活动部署配置为准。
+> **历史规划文档**：本文保留早期设计意图，不代表当前目录和运行实现。当前架构事实以 ``docs/current-architecture.md`、源码和活动部署配置为准。
 
 ## 一、项目概述
 
@@ -60,7 +60,7 @@
 
 ## 四、目录结构规划（历史）
 
-以下树是早期目标结构，保留用于理解设计演进，不能用于判断当前文件是否存在。当前活动主路径为 `src/`、`miniprogram/`、`backend/`、`services/`、`platform/` 和 `firmware/`；完整责任边界见 `.harness/wiki/service-catalog.md`。
+以下树是早期目标结构，保留用于理解设计演进，不能用于判断当前文件是否存在。当前活动主路径为 `src/`、`miniprogram/`、`backend/`、`services/`、`platform/` 和 `firmware/`；完整责任边界见 ``docs/current-architecture.md` 与 README 的 Repository layout。
 
 ```
 project009/
@@ -419,7 +419,7 @@ R60ABD1雷达 --[UART]--> ESP32-S3 --[MQTT]--> 后端服务 --[InfluxDB]-->
 
 ## 八、技术栈优化说明（历史提案）
 
-> 本节的技术栈、性能数字和选型结论是早期规划，未作为当前基准验证。当前实现为 NestJS 11 + Express、Prisma 5.22.0 和 Taro 3.6.23；当前容量与性能结论只认 `202607worklog/performance/` 中带有效原始证据的报告。
+> 本节的技术栈、性能数字和选型结论是早期规划，未作为当前基准验证。当前实现为 NestJS 11 + Express、Prisma 5.22.0 和 Taro 3.6.23；当前容量与性能结论以公开仓库内可复现的验证为准；`202607worklog/` 为内部工作目录，不随公开仓库分发。
 
 ### 8.1 优化背景
 
@@ -434,7 +434,7 @@ R60ABD1雷达 --[UART]--> ESP32-S3 --[MQTT]--> 后端服务 --[InfluxDB]-->
 | ORM | 无/自建 | **Prisma 5.x** | 类型安全的ORM，自动生成类型定义，开发效率高 |
 | 内部队列 | RabbitMQ/Redis | **Redis Pub/Sub** | 简化架构，Redis已用于缓存，复用连接 |
 
-**性能说明**：早期框架对比数字没有保留可复现的环境与原始结果，不作为仓库证据。当前性能结论以 `202607worklog/performance/` 的报告和非空原始文件为准。
+**性能说明**：早期框架对比数字没有保留可复现的环境与原始结果，不作为仓库证据。当前性能结论以公开仓库内可复现的验证为准；内部性能工作目录不随公开仓库分发。
 
 ### 8.3 时序数据库优化
 

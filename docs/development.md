@@ -71,7 +71,7 @@
 
 ### 1.3 目录结构
 
-稳定的开发入口如下；模块细节以源码和 `.harness/wiki/service-catalog.md` 为准：
+稳定的开发入口如下；模块细节以源码和 `docs/current-architecture.md` 为准：
 
 - `src/`：Vite/React Web 与 Capacitor Web 源码。
 - `miniprogram/`：Taro/React 微信小程序。
@@ -79,7 +79,6 @@
 - `services/`：遥测、实时处理、Flink、特征与 Agent 独立服务。
 - `platform/`：数据契约、部署、可观测性、IaC 与验证资产。
 - `firmware/`：ESP32-S3 固件源码；当前只作为源码/设计证据。
-- `.harness/`：工程规则、架构 wiki、阶段技能和变更记录。
 
 `dist/`、`build/`、依赖目录与本地数据目录不属于源码入口。
 

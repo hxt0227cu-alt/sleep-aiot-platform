@@ -40,7 +40,7 @@ Publishing without a local shortcut is deliberate. A local fast path would creat
 
 A single channel, `ws:fanout`, carrying an envelope of `{ target: {kind, id}, payload, publishedAt }`. Each replica filters locally.
 
-This is deliberately the unsophisticated option. At the declared capacity in `202607worklog/architecture/01-capacity-model.md` — 2,000 peak connected clients across at most 20 replicas — every replica receiving every envelope costs one small message per replica per event. The alternative, per-subject channels with dynamic subscribe and unsubscribe on every connect and disconnect, trades that cheap bandwidth for subscription churn proportional to connection churn, which is the more volatile quantity.
+This is deliberately the unsophisticated option. At the declared capacity — 2,000 peak connected clients across at most 20 replicas — every replica receiving every envelope costs one small message per replica per event. The alternative, per-subject channels with dynamic subscribe and unsubscribe on every connect and disconnect, trades that cheap bandwidth for subscription churn proportional to connection churn, which is the more volatile quantity.
 
 The migration trigger is recorded now so it is a measurement rather than an argument: move to per-subject channels when sustained `ws:fanout` publish rate exceeds 2,000 messages per second or when replica CPU attributable to envelope filtering exceeds 5%. Below that, single channel stands.
 

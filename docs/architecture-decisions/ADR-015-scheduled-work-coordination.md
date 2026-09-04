@@ -24,7 +24,7 @@ Three are not:
 
 The device-status pair is the more interesting failure. It is not primarily a concurrency defect — it is a modelling defect that concurrency exposed. Device liveness has two owners inside a single service, each with its own state, its own timeout constant and its own tick. At one replica they merely disagree with each other. At three replicas there are six authorities for one fact, and the offline event a user receives depends on which pod happened to notice first.
 
-The `deviceStatusCache` also makes replica memory a function of device count. At the 10,000-device target in `202607worklog/architecture/01-capacity-model.md`, against the `1Gi` limit in `platform/k8s/base/backend-deployment.yaml:50-56`, the pod's memory ceiling becomes an undeclared device-count ceiling.
+The `deviceStatusCache` also makes replica memory a function of device count. At the 10,000-device target, against the `1Gi` limit in `platform/k8s/base/backend-deployment.yaml:50-56`, the pod's memory ceiling becomes an undeclared device-count ceiling.
 
 ## Decision
 

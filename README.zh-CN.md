@@ -121,7 +121,9 @@ idf.py build
 
 - `backend-ci.yml` —— 后端类型检查、单元测试、构建、镜像签名（cosign）、平台清单校验（kustomize + promtool）。
 - `miniprogram-ci.yml` —— 小程序 lint / 类型检查 / 测试 / 构建。
-- `enterprise-platform-ci.yml` —— 数据平台与 Agent 回归检查。
+- `web-ci.yml` —— Web 客户端（Vite/React）构建 + Vitest 冒烟测试。
+- `firmware-ci.yml` —— ESP32-S3 固件在 ESP-IDF 工具链镜像下编译验证。
+- `enterprise-platform-ci.yml` —— 数据平台与 Agent 回归、安全硬闸、按需 K8s 运行时冒烟。
 
 ## 现状与已知限制
 
@@ -130,7 +132,7 @@ idf.py build
 
 ## 文档
 
-- [架构总览](docs/architecture.md)
+- [当前架构](docs/current-architecture.md) · [历史规划文档](docs/architecture.md)
 - [产品需求文档](docs/product-requirements.md)
 - [API 设计](backend/docs/API_Design.md) · [数据库设计](backend/docs/Database_Design.md) · [MQTT 协议](backend/docs/MQTT_Protocol.md)
 - [硬件：雷达协议](docs/hardware/r60abd1-protocol.md) · [GSM](docs/hardware/sim800c-gsm.md) · [音频](docs/hardware/max98357-audio.md) · [麦克风](docs/hardware/ics-43434-microphone.md)

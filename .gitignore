@@ -12,6 +12,19 @@ __pycache__/
 .terraform/
 *.class
 *.jar
+# Maven/Gradle build output
+target/
+**/target/
+.mvn/
+.gradle/
+# Java build reports
+surefire-reports/
+maven-status/
+maven-archiver/
+
+# ---- Accidental nested .git backups (never commit) ----
+.git.nested-*/
+**/.git.nested-*/
 
 # ---- Local environment / secrets ----
 .env

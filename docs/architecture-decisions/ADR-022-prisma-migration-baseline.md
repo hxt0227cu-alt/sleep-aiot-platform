@@ -70,5 +70,5 @@ no database rollback because it performs no writes.
 
 Acceptance requires four isolated PostgreSQL checks: fresh deployment, repeated
 deployment, compatible history-free adoption, and drift rejection with no
-`_prisma_migrations` table created. Results are recorded in
-`.harness/changes/2026-08-03-database-migration-baseline.md`.
+`_prisma_migrations` table created. Results are recorded in the project's internal change log
+(not shipped with this public repository).
