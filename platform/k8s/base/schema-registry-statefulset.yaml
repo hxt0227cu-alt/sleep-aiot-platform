@@ -17,6 +17,13 @@ spec:
       labels:
         app: schema-registry
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: schema-registry
           image: confluentinc/cp-schema-registry:7.5.3
@@ -61,6 +68,8 @@ spec:
             - name: kafka-secrets
               mountPath: /etc/kafka/secrets
               readOnly: true
+            - name: schema-registry-tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 250m
@@ -80,10 +89,18 @@ spec:
               port: 8081
             initialDelaySeconds: 60
             periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
       volumes:
         - name: kafka-secrets
           secret:
             secretName: kafka-tls
+        - name: schema-registry-tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

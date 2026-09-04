@@ -17,6 +17,13 @@ spec:
             app: vault-snapshot
         spec:
           serviceAccountName: vault-snapshot
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 100
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
           restartPolicy: OnFailure
           containers:
             - name: vault-snapshot
@@ -60,6 +67,8 @@ spec:
               volumeMounts:
                 - name: snapshots
                   mountPath: /snapshots
+                - name: tmp
+                  mountPath: /tmp
               resources:
                 requests:
                   cpu: 100m
@@ -67,10 +76,18 @@ spec:
                 limits:
                   cpu: 500m
                   memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities:
+                  drop: ["ALL"]
           volumes:
             - name: snapshots
               persistentVolumeClaim:
                 claimName: vault-snapshots-pvc
+            - name: tmp
+              emptyDir: {}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

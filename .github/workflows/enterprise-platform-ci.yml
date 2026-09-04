@@ -349,6 +349,9 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '0'
+          # platform/k8s/rendered is a generated deployment bundle (New-DeploymentBundle.ps1),
+          # not source: exclude it so a stale snapshot doesn't surface duplicate findings.
+          skip-dirs: platform/k8s/rendered
       - name: Generate complete Trivy SARIF
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -359,6 +362,7 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           ignore-unfixed: true
+          skip-dirs: platform/k8s/rendered
           exit-code: '0'
       - name: Preserve Trivy SARIF
         if: always()

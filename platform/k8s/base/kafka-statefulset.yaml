@@ -94,6 +94,8 @@ spec:
             - name: kafka-secrets
               mountPath: /etc/kafka/secrets
               readOnly: true
+            - name: kafka-tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 1000m
@@ -113,10 +115,16 @@ spec:
             periodSeconds: 30
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
       volumes:
         - name: kafka-secrets
           secret:
             secretName: kafka-tls
+        - name: kafka-tmp
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: kafka-data

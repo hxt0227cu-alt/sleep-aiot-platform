@@ -53,6 +53,10 @@ spec:
               mountPath: /etc/clickhouse-server/config.d
             - name: clickhouse-users
               mountPath: /etc/clickhouse-server/users.d
+            - name: clickhouse-logs
+              mountPath: /var/log/clickhouse-server
+            - name: clickhouse-tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 1000m
@@ -74,6 +78,10 @@ spec:
             periodSeconds: 30
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
       volumes:
         - name: clickhouse-config
           configMap:
@@ -81,6 +89,10 @@ spec:
         - name: clickhouse-users
           configMap:
             name: clickhouse-users
+        - name: clickhouse-logs
+          emptyDir: {}
+        - name: clickhouse-tmp
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: clickhouse-data

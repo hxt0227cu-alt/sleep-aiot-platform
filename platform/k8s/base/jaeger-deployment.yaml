@@ -16,6 +16,13 @@ spec:
       labels:
         app: jaeger
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: jaeger
           image: jaegertracing/all-in-one:1.52
@@ -65,6 +72,8 @@ spec:
           volumeMounts:
             - name: badger-data
               mountPath: /badger
+            - name: jaeger-tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 500m
@@ -84,8 +93,16 @@ spec:
               port: 16686
             initialDelaySeconds: 30
             periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
       volumes:
         - name: badger-data
+          emptyDir: {}
+        - name: jaeger-tmp
           emptyDir: {}
 ---
 apiVersion: v1
@@ -132,6 +149,13 @@ spec:
       labels:
         app: loki
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: loki
           image: grafana/loki:2.9.4
@@ -146,6 +170,8 @@ spec:
               mountPath: /etc/loki
             - name: loki-data
               mountPath: /loki
+            - name: loki-tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 250m
@@ -165,11 +191,19 @@ spec:
               port: 3100
             initialDelaySeconds: 30
             periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
       volumes:
         - name: loki-config
           configMap:
             name: loki-config
         - name: loki-data
+          emptyDir: {}
+        - name: loki-tmp
           emptyDir: {}
 ---
 apiVersion: v1

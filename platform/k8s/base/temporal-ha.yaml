@@ -17,6 +17,12 @@ spec:
         app: temporal
     spec:
       serviceAccountName: temporal
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: temporal
           image: temporalio/server:1.22.4
@@ -55,6 +61,8 @@ spec:
           volumeMounts:
             - name: temporal-config
               mountPath: /etc/temporal/config
+            - name: temporal-tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 500m
@@ -72,10 +80,18 @@ spec:
               port: 7233
             initialDelaySeconds: 60
             periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
       volumes:
         - name: temporal-config
           configMap:
             name: temporal-config
+        - name: temporal-tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

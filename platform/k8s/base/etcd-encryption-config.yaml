@@ -133,6 +133,11 @@ spec:
       template:
         spec:
           serviceAccountName: etcd-encryption-rotator
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
           restartPolicy: OnFailure
           containers:
             - name: key-rotation
@@ -149,6 +154,15 @@ spec:
                   # 4. 验证所有 Secret 已使用新密钥加密
                   # 5. 移除旧密钥
                   echo "Key rotation completed at $(date)"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
               resources:
                 requests:
                   cpu: 100m
@@ -156,3 +170,6 @@ spec:
                 limits:
                   cpu: 500m
                   memory: 512Mi
+          volumes:
+            - name: tmp
+              emptyDir: {}

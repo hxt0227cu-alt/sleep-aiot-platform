@@ -60,6 +60,10 @@ spec:
               mountPath: /vault/data
             - name: vault-config
               mountPath: /vault/config
+            - name: vault-logs
+              mountPath: /vault/logs
+            - name: vault-tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 250m
@@ -81,12 +85,18 @@ spec:
             periodSeconds: 10
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
             capabilities:
               drop: ["ALL"]
       volumes:
         - name: vault-config
           configMap:
             name: vault-config
+        - name: vault-logs
+          emptyDir: {}
+        - name: vault-tmp
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: vault-data

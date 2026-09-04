@@ -1,5 +1,9 @@
 # Sleep AIoT Platform
 
+[![Backend CI](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/backend-ci.yml)
+[![Enterprise Platform CI](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/enterprise-platform-ci.yml/badge.svg)](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/enterprise-platform-ci.yml)
+[![Miniprogram CI](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/miniprogram-ci.yml/badge.svg)](https://github.com/hxt0227cu-alt/sleep-aiot-platform/actions/workflows/miniprogram-ci.yml)
+
 An end-to-end **smart sleep monitoring lamp** reference implementation: an ESP32‑S3 edge device (mmWave radar, audio, lighting, alarm) connected over MQTT to a multi‑tenant cloud platform that combines a NestJS control plane, a Kafka/Flink/ClickHouse streaming data plane, a RAG‑backed sleep assistant, and a WeChat mini‑program / web client.
 
 > This repository is a **reference / portfolio-grade implementation**. It demonstrates how a complete IoT health product can be built with production-oriented engineering practices — event contracts, idempotency, multi-tenant isolation, security guardrails, observability, IaC and CI — rather than a throwaway prototype. Hardware evidence is not included: the device firmware is source-only and validated by simulation/compile (see [ADR-005](docs/architecture-decisions/ADR-005-no-hardware-validation.md)).

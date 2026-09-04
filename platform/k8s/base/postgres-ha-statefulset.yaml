@@ -52,6 +52,10 @@ spec:
               mountPath: /var/lib/postgresql/data
             - name: postgres-config
               mountPath: /etc/postgresql
+            - name: postgres-run
+              mountPath: /var/run/postgresql
+            - name: postgres-tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 500m
@@ -71,7 +75,10 @@ spec:
             periodSeconds: 30
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
         - name: postgres-exporter
           image: prometheuscommunity/postgres-exporter:v0.15.0
           ports:
@@ -90,10 +97,25 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: postgres-exporter-tmp
+              mountPath: /tmp
       volumes:
         - name: postgres-config
           configMap:
             name: postgres-config
+        - name: postgres-run
+          emptyDir: {}
+        - name: postgres-tmp
+          emptyDir: {}
+        - name: postgres-exporter-tmp
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
