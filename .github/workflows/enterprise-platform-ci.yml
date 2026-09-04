@@ -114,15 +114,22 @@ jobs:
             --env-file ../../platform/local/.env.example \
             -f ../../platform/local/docker-compose.enterprise.yml \
             --profile data-platform \
-            up -d --build kafka kafka-init clickhouse clickhouse-init schema-registry schema-contract-init
-          # schema-contract-init registers the subject asynchronously; wait for it before the smoke
-          for i in $(seq 1 30); do
+            up -d --build kafka kafka-init clickhouse clickhouse-init schema-registry
+          # Run the contract initializer in the foreground (blocks until the subject
+          # is registered), the same proven path used by the schema-contracts job.
+          docker compose \
+            --env-file ../../platform/local/.env.example \
+            -f ../../platform/local/docker-compose.enterprise.yml \
+            --profile data-platform \
+            run --rm schema-contract-init
+          # Belt-and-suspenders: confirm the subject is queryable before the smoke
+          for i in $(seq 1 12); do
             if curl -sf http://127.0.0.1:8081/subjects/telemetry.device.v1-value >/dev/null 2>&1; then
               echo "schema subject registered after $((i*5))s"
               break
             fi
-            if [ "$i" = "30" ]; then
-              echo "::error::schema subject telemetry.device.v1-value was not registered within 150s"
+            if [ "$i" = "12" ]; then
+              echo "::error::schema subject telemetry.device.v1-value was not registered within 60s"
               exit 1
             fi
             sleep 5
