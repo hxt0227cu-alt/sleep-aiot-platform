@@ -195,7 +195,29 @@ try {
   }
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
-  console.log(JSON.stringify({ outputPath, runId, status: result.status, passed: result.passed }, null, 2));
+  if (result.status === 'failed' && result.assertions) {
+    const failedAssertions = Object.entries(result.assertions)
+      .filter(([, value]) => !value)
+      .map(([key]) => key);
+    console.log(JSON.stringify({
+      outputPath,
+      runId,
+      status: result.status,
+      passed: result.passed,
+      failedAssertions,
+      observed: {
+        dwd: result.kafkaOutputs?.dwd?.length,
+        late: result.kafkaOutputs?.late?.length,
+        aggregate: result.kafkaOutputs?.aggregate?.length,
+        invalid: result.kafkaOutputs?.invalid?.length,
+        duplicate: result.kafkaOutputs?.duplicate?.length,
+        warehouse: result.warehouse,
+      },
+      error: result.error ?? null,
+    }, null, 2));
+  } else {
+    console.log(JSON.stringify({ outputPath, runId, status: result.status, passed: result.passed }, null, 2));
+  }
 }
 
 function telemetry(eventId, deviceId, occurredAt, sequence, heartRate, breathingRate) {
