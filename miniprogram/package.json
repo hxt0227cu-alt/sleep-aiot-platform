@@ -49,7 +49,7 @@
     "@tarojs/taro": "3.6.23",
     "echarts-for-weixin": "^1.0.2",
     "react": "^19.2.8",
-    "react-dom": "^18.0.0",
+    "react-dom": "^19.2.8",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
