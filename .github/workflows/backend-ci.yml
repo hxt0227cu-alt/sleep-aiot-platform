@@ -76,7 +76,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sleep_monitor_test
         run: |
           echo "CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS timescaledb;" | pnpm exec prisma db execute --stdin
-          pnpm exec prisma db push --skip-generate
+          pnpm exec prisma db push
 
       # Lint 棘轮门禁（ADR-020）。
       # 直接跑 `pnpm run lint` 在存量代码上有 1100+ 个 type-safety error，
