@@ -5,6 +5,6 @@ COPY pom.xml ./
 COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 mvn -B verify
 
-FROM flink:1.20.1-scala_2.12-java17
+FROM flink:2.3.0-java17
 COPY --from=build /build/target/flink-telemetry-job-0.1.0-all.jar /opt/flink/usrlib/flink-telemetry-job.jar
 USER flink
