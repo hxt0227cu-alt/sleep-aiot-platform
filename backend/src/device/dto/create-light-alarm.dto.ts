@@ -12,10 +12,10 @@ import { Transform, Type } from 'class-transformer';
 export class CreateLightAlarmDto {
   @IsString()
   @Matches(/^\d{2}:\d{2}$/)
-  time: string;
+  time!: string;
 
   @IsString()
-  mode: string;
+  mode!: string;
 
   @Transform(({ value, obj }) => value ?? obj.brightness_target)
   @Type(() => Number)

@@ -22,7 +22,7 @@ import {
  */
 @Injectable()
 export class MqttService implements OnModuleInit, OnModuleDestroy {
-  private client: mqtt.MqttClient;
+  private client!: mqtt.MqttClient;
   private readonly logger = new Logger(MqttService.name);
 
   // 消息回调注册表（用于向后兼容）

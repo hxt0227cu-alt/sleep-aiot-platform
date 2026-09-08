@@ -11,15 +11,15 @@ import {
 export class CreateSleepRelaxRecordDto {
   @IsString()
   @IsIn(['breathing', 'muscle', 'meditation'])
-  methodId: string;
+  methodId!: string;
 
   @IsString()
   @MaxLength(100)
-  methodName: string;
+  methodName!: string;
 
   @IsInt()
   @Min(1)
-  durationSeconds: number;
+  durationSeconds!: number;
 
   @IsOptional()
   @IsDateString()

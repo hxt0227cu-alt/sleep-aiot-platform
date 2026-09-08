@@ -33,10 +33,10 @@ export enum GuardDenialReason {
  */
 export class GuardResultDto {
   /** 校验状态 */
-  status: GuardResultStatus;
+  status!: GuardResultStatus;
 
   /** 评估出的风险等级 */
-  riskLevel: CommandRiskLevel;
+  riskLevel!: CommandRiskLevel;
 
   /** 拒绝原因（status=DENIED 时必填） */
   denialReason?: GuardDenialReason;
@@ -58,7 +58,7 @@ export class GuardResultDto {
   };
 
   /** 校验耗时（毫秒） */
-  guardLatencyMs: number;
+  guardLatencyMs!: number;
 
   /** 审计记录 ID */
   auditRecordId?: string;

@@ -22,19 +22,19 @@ export enum AlarmStatus {
 export class CreateAlarmDto {
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   @IsString()
   @IsNotEmpty()
-  type: string;
+  type!: string;
 
   @IsEnum(AlarmLevel)
   @IsNotEmpty()
-  level: AlarmLevel;
+  level!: AlarmLevel;
 
   @IsString()
   @IsNotEmpty()
-  message: string;
+  message!: string;
 
   @IsNumber()
   @IsOptional()
@@ -46,5 +46,5 @@ export class CreateAlarmDto {
 
   @IsDateString()
   @IsNotEmpty()
-  timestamp: string;
+  timestamp!: string;
 }

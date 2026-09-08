@@ -5,16 +5,16 @@ import { ApiProperty } from '@nestjs/swagger';
  */
 export class ResponseDto<T> {
   @ApiProperty({ description: '响应数据' })
-  data: T;
+  data!: T;
 
   @ApiProperty({ description: '状态码', example: 200 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ description: '响应消息', example: 'Success' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ description: '时间戳', example: '2024-01-01T00:00:00.000Z' })
-  timestamp: string;
+  timestamp!: string;
 }
 
 /**
@@ -22,28 +22,28 @@ export class ResponseDto<T> {
  */
 export class PaginatedResponseDto<T> {
   @ApiProperty({ description: '数据列表' })
-  data: T[];
+  data!: T[];
 
   @ApiProperty({ description: '总数', example: 100 })
-  total: number;
+  total!: number;
 
   @ApiProperty({ description: '当前页', example: 1 })
-  page: number;
+  page!: number;
 
   @ApiProperty({ description: '每页数量', example: 20 })
-  pageSize: number;
+  pageSize!: number;
 
   @ApiProperty({ description: '总页数', example: 5 })
-  totalPages: number;
+  totalPages!: number;
 
   @ApiProperty({ description: '状态码', example: 200 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ description: '响应消息', example: 'Success' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ description: '时间戳', example: '2024-01-01T00:00:00.000Z' })
-  timestamp: string;
+  timestamp!: string;
 }
 
 /**
@@ -51,22 +51,22 @@ export class PaginatedResponseDto<T> {
  */
 export class ErrorResponseDto {
   @ApiProperty({ description: '错误码', example: 400 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ description: '错误消息', example: 'Bad Request' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ description: '错误详情' })
   error?: string;
 
   @ApiProperty({ description: '请求路径', example: '/api/v1/devices' })
-  path: string;
+  path!: string;
 
   @ApiProperty({ description: '请求方法', example: 'GET' })
-  method: string;
+  method!: string;
 
   @ApiProperty({ description: '时间戳', example: '2024-01-01T00:00:00.000Z' })
-  timestamp: string;
+  timestamp!: string;
 }
 
 /**
@@ -74,11 +74,11 @@ export class ErrorResponseDto {
  */
 export class SuccessResponseDto {
   @ApiProperty({ description: '成功消息', example: '操作成功' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ description: '状态码', example: 200 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ description: '时间戳', example: '2024-01-01T00:00:00.000Z' })
-  timestamp: string;
+  timestamp!: string;
 }

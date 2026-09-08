@@ -5,10 +5,10 @@ export class BindDeviceDto {
   @Transform(({ value, obj }) => value ?? obj.device_id)
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   @Transform(({ value, obj }) => value ?? obj.binding_code)
   @IsString()
   @IsNotEmpty()
-  bindingCode: string;
+  bindingCode!: string;
 }

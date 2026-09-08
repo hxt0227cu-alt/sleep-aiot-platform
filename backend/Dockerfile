@@ -1,4 +1,4 @@
-FROM docker.m.daocloud.io/library/node:20-bookworm-slim AS base
+﻿FROM docker.m.daocloud.io/library/node:24-bookworm-slim AS base
 RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources \
   && apt-get update \
   && apt-get upgrade -y \

@@ -9,11 +9,11 @@ import {
 export class CreateSleepDataDto {
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   @IsDateString()
   @IsNotEmpty()
-  timestamp: string;
+  timestamp!: string;
 
   @IsNumber()
   @IsOptional()

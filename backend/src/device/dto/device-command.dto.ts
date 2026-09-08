@@ -12,10 +12,10 @@ export enum CommandType {
 
 export class DeviceCommandDto {
   @IsEnum(CommandType)
-  command: CommandType;
+  command!: CommandType;
 
   @IsObject()
-  params: Record<string, any>;
+  params!: Record<string, any>;
 
   @Transform(({ value }) =>
     value === undefined || value === null ? value : Number(value),

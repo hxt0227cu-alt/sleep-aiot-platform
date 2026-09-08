@@ -5,7 +5,7 @@ export class ExplainSleepReportDto {
   @Transform(({ value, obj }) => value ?? obj.device_id)
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   @IsOptional()
   @IsString()
@@ -14,5 +14,5 @@ export class ExplainSleepReportDto {
 
   @IsString()
   @IsNotEmpty()
-  question: string;
+  question!: string;
 }

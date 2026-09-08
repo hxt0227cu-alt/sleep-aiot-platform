@@ -4,7 +4,7 @@ export class CreateDeviceDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @IsString()
   @IsOptional()

@@ -6,27 +6,27 @@ import { IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
 export class AlarmAccuracyMetricsDto {
   /** 报警类型：heart_rate / respiration / bed_exit / movement */
   @IsString()
-  alarmType: string;
+  alarmType!: string;
 
   /** 真阳性（正确报警数） */
   @IsNumber()
   @Min(0)
-  truePositives: number;
+  truePositives!: number;
 
   /** 假阳性（误报数） */
   @IsNumber()
   @Min(0)
-  falsePositives: number;
+  falsePositives!: number;
 
   /** 真阴性（正确未报警数） */
   @IsNumber()
   @Min(0)
-  trueNegatives: number;
+  trueNegatives!: number;
 
   /** 假阴性（漏报数） */
   @IsNumber()
   @Min(0)
-  falseNegatives: number;
+  falseNegatives!: number;
 
   /** 灵敏度（召回率）= TP / (TP + FN) */
   @IsNumber()

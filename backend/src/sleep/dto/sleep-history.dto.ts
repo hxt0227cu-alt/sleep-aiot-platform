@@ -4,11 +4,11 @@ import { IsNumber, IsOptional, IsString } from 'class-validator';
 export class SleepHistoryDto {
   @Type(() => Number)
   @IsNumber()
-  startTime: number;
+  startTime!: number;
 
   @Type(() => Number)
   @IsNumber()
-  endTime: number;
+  endTime!: number;
 
   @Type(() => Number)
   @IsNumber()
