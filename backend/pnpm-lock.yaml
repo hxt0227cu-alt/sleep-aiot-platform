@@ -68,6 +68,9 @@ importers:
       class-validator:
         specifier: ^0.15.1
         version: 0.15.1
+      dotenv:
+        specifier: ^16
+        version: 16.6.1
       express:
         specifier: ^5.2.1
         version: 5.2.1
@@ -138,9 +141,6 @@ importers:
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
-      dotenv:
-        specifier: ^16
-        version: 16.6.1
       eslint:
         specifier: ^9.18.0
         version: 9.39.5(jiti@2.7.0)
