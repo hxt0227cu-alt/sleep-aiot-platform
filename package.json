@@ -76,14 +76,14 @@
     "@capacitor/android": "^7.6.5",
     "@capacitor/cli": "^7.6.5",
     "@capacitor/core": "^7.6.5",
-    "@tailwindcss/vite": "4.1.12",
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
-    "@vitejs/plugin-react": "4.7.0",
+    "@vitejs/plugin-react": "6.1.1",
     "jsdom": "^30.0.1",
     "tailwindcss": "4.3.3",
-    "vite": "6.3.5",
-    "vitest": "^3.2.7"
+    "vite": "8.2.2",
+    "vitest": "^5.0.0"
   },
   "peerDependencies": {
     "react": "18.3.1",
