@@ -106,11 +106,11 @@ services:
       - -c
       - >-
         printf '%s\n' 'CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS timescaledb;'
-        | ./node_modules/.bin/prisma db execute --stdin --schema prisma/schema.prisma
+        | ./node_modules/.bin/prisma db execute --stdin
         && ./node_modules/.bin/prisma db push --schema prisma/schema.prisma
         && sed -n '/CREATE TABLE "agent_runtime_runs"/,/CREATE INDEX "agent_memory_audit_scope_idx"/p'
         prisma/migrations/20260000000000_baseline/migration.sql
-        | ./node_modules/.bin/prisma db execute --stdin --schema prisma/schema.prisma
+        | ./node_modules/.bin/prisma db execute --stdin
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-sleep}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sleep}
     depends_on:
