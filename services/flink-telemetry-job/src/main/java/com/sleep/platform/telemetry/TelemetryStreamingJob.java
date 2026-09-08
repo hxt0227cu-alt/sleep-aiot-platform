@@ -9,21 +9,22 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.AggregateFunction;
-import org.apache.flink.api.common.restartstrategy.RestartStrategies;
+import org.apache.flink.api.common.functions.OpenContext;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.state.StateTtlConfig;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.Types;
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.ExternalizedCheckpointRetention;
+import org.apache.flink.configuration.RestartStrategyOptions;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.metrics.Counter;
-import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -33,10 +34,10 @@ import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
+import org.apache.flink.util.ParameterTool;
 
 public final class TelemetryStreamingJob {
   private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -60,16 +61,25 @@ public final class TelemetryStreamingJob {
 
     StreamExecutionEnvironment environment = StreamExecutionEnvironment.getExecutionEnvironment();
     environment.setParallelism(parameters.getInt("parallelism", 1));
-    environment.getConfig().setGlobalJobParameters(parameters);
-    environment.setStateBackend(new HashMapStateBackend());
+    // Flink 2.x：重启策略、外部化 checkpoint 与 checkpoint 存储统一走 Configuration
+    // （setRestartStrategy / setGlobalJobParameters / setStateBackend /
+    //  CheckpointConfig.setCheckpointStorage 已在 2.0 移除；hashmap 本就是默认状态后端）。
+    Configuration configuration = new Configuration();
+    configuration.set(RestartStrategyOptions.RESTART_STRATEGY, "fixed-delay");
+    configuration.set(RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_ATTEMPTS, 3);
+    configuration.set(
+        RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_DELAY, Duration.ofSeconds(2));
+    configuration.set(
+        CheckpointingOptions.EXTERNALIZED_CHECKPOINT_RETENTION,
+        ExternalizedCheckpointRetention.RETAIN_ON_CANCELLATION);
+    configuration.set(CheckpointingOptions.CHECKPOINT_STORAGE, "filesystem");
+    configuration.set(
+        CheckpointingOptions.CHECKPOINTS_DIRECTORY, required(parameters, "checkpoint-uri"));
+    environment.configure(configuration);
     environment.enableCheckpointing(checkpointIntervalMs, CheckpointingMode.EXACTLY_ONCE);
     environment.getCheckpointConfig().setMinPauseBetweenCheckpoints(1_000);
     environment.getCheckpointConfig().setCheckpointTimeout(60_000);
     environment.getCheckpointConfig().setMaxConcurrentCheckpoints(1);
-    environment.getCheckpointConfig().setCheckpointStorage(required(parameters, "checkpoint-uri"));
-    environment.getCheckpointConfig().setExternalizedCheckpointCleanup(
-        CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
-    environment.setRestartStrategy(RestartStrategies.fixedDelayRestart(3, Duration.ofSeconds(2)));
 
     KafkaSource<String> source = KafkaSource.<String>builder()
         .setBootstrapServers(brokers)
@@ -115,7 +125,7 @@ public final class TelemetryStreamingJob {
 
     DataStream<String> windowAggregates = onTime
         .keyBy(event -> event.tenantId)
-        .window(TumblingEventTimeWindows.of(Time.minutes(windowMinutes)))
+        .window(TumblingEventTimeWindows.of(Duration.ofMinutes(windowMinutes)))
         .aggregate(new TenantWindowAggregate(), new TenantWindowResult(runId))
         .name("tenant-event-time-window");
 
@@ -193,7 +203,7 @@ public final class TelemetryStreamingJob {
     }
 
     @Override
-    public void open(Configuration parameters) {
+    public void open(OpenContext openContext) {
       validCounter = getRuntimeContext().getMetricGroup().counter("valid_records_total");
       invalidCounter = getRuntimeContext().getMetricGroup().counter("invalid_records_total");
     }
@@ -227,7 +237,7 @@ public final class TelemetryStreamingJob {
     }
 
     @Override
-    public void open(Configuration parameters) {
+    public void open(OpenContext openContext) {
       StateTtlConfig ttl = StateTtlConfig.newBuilder(Duration.ofHours(1))
           .setUpdateType(StateTtlConfig.UpdateType.OnCreateAndWrite)
           .setStateVisibility(StateTtlConfig.StateVisibility.NeverReturnExpired)
@@ -266,7 +276,7 @@ public final class TelemetryStreamingJob {
     }
 
     @Override
-    public void open(Configuration parameters) {
+    public void open(OpenContext openContext) {
       lateCounter = getRuntimeContext().getMetricGroup().counter("late_records_total");
     }
 
