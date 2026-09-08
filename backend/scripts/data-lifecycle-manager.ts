@@ -18,7 +18,8 @@
  *   all        - 执行全部操作（默认）
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../src/generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 // ============================================================
 // 配置
@@ -154,7 +155,11 @@ class DataLifecycleManager {
 
   constructor(config?: Partial<LifecycleConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.prisma = new PrismaClient();
+    this.prisma = new PrismaClient({
+      adapter: new PrismaPg({
+        connectionString: process.env.DATABASE_URL ?? '',
+      }),
+    });
   }
 
   /**

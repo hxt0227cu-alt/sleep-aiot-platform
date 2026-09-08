@@ -1,8 +1,4 @@
-import {
-  computeConnectionLimit,
-  withConnectionLimit,
-  requiresPgBouncer,
-} from './connection-budget';
+import { computeConnectionLimit, requiresPgBouncer } from './connection-budget';
 
 describe('数据库连接预算（ADR-016）', () => {
   describe('computeConnectionLimit', () => {
@@ -41,23 +37,6 @@ describe('数据库连接预算（ADR-016）', () => {
           maxReplicas: 5,
         }),
       ).toBe(1);
-    });
-  });
-
-  describe('withConnectionLimit', () => {
-    it('把 connection_limit 写入 DATABASE_URL 查询参数', () => {
-      const url = withConnectionLimit('postgresql://u:p@db:5432/app', 4);
-      expect(url).toContain('connection_limit=4');
-      expect(url).toContain('pool_timeout=20');
-    });
-
-    it('剥离原 URL 上已有的查询串，避免参数冲突', () => {
-      const url = withConnectionLimit(
-        'postgresql://u:p@db:5432/app?foo=bar',
-        4,
-      );
-      expect(url).not.toContain('foo=bar');
-      expect(url.startsWith('postgresql://u:p@db:5432/app?')).toBe(true);
     });
   });
 

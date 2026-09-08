@@ -1,11 +1,15 @@
+// Prisma ORM v7：Rust-free client，强制 driver adapter（@prisma/adapter-pg）。
+// output 指向 src/generated/prisma（已入库，CI/Docker 构建前会重新 prisma generate 防漂移）。
+// moduleFormat = "cjs"：本项目 NestJS 以 CJS 运行（nest build 输出 CommonJS）。
+// datasource url 移至 prisma.config.ts（v7 中 datasource 块内 url 已废弃）。
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {

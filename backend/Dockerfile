@@ -37,6 +37,7 @@ RUN useradd --system --uid 1001 --gid 1001 --no-create-home nestjs
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/package.json ./package.json
 
 USER nestjs

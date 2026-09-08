@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 
 export type TenantRole =
   'owner' | 'admin' | 'member' | 'viewer' | 'service_account';

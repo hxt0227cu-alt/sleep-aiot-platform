@@ -26,18 +26,8 @@ export function computeConnectionLimit(input: ConnectionBudgetInput): number {
   return Math.max(1, Math.floor(usable / Math.max(1, input.maxReplicas)));
 }
 
-/** 把连接上限写入 DATABASE_URL 的查询参数（Prisma 原生支持 connection_limit）。 */
-export function withConnectionLimit(
-  databaseUrl: string,
-  limit: number,
-): string {
-  const sanitized = databaseUrl.split('?')[0];
-  const params = new URLSearchParams();
-  params.set('connection_limit', String(limit));
-  params.set('pool_timeout', '20');
-  params.set('connect_timeout', '10');
-  return `${sanitized}?${params.toString()}`;
-}
+// v7（driver adapter）下连接预算经 PrismaPg 的 pg 池 max 生效（见 prisma.service.ts），
+// 不再向 DATABASE_URL 注入 Prisma 引擎专用参数，原 withConnectionLimit 已删除。
 
 /** 当预算算出的每副本连接数过低时，必须启用 PgBouncer（transaction 模式）。 */
 export function requiresPgBouncer(perReplicaLimit: number): boolean {
