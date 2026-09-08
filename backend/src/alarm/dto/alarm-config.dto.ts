@@ -24,13 +24,13 @@ export enum AlarmLevel {
 
 export class AlarmRuleDto {
   @IsEnum(AlarmType)
-  type: AlarmType;
+  type!: AlarmType;
 
   @IsBoolean()
-  enabled: boolean;
+  enabled!: boolean;
 
   @IsNumber()
-  threshold: number;
+  threshold!: number;
 
   @IsNumber()
   @IsOptional()
@@ -38,14 +38,14 @@ export class AlarmRuleDto {
 
   @IsArray()
   @IsString({ each: true })
-  actions: string[];
+  actions!: string[];
 }
 
 export class AlarmConfigDto {
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   @IsArray()
-  rules: AlarmRuleDto[];
+  rules!: AlarmRuleDto[];
 }

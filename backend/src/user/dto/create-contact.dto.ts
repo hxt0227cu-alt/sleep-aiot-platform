@@ -17,12 +17,12 @@ export class CreateContactDto {
   @Matches(/^[\u4e00-\u9fa5a-zA-Z\s]+$/u, {
     message: 'Name can only contain Chinese characters, letters, and spaces',
   })
-  name: string;
+  name!: string;
 
   @IsString()
   @IsNotEmpty()
   @Matches(/^1[3-9]\d{9}$/, { message: 'Invalid phone number format' })
-  phone: string;
+  phone!: string;
 
   @IsString()
   @IsOptional()

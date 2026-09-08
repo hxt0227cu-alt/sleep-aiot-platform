@@ -17,17 +17,17 @@ export enum OtaStatus {
 export class OtaProgressDto {
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   @IsString()
   @IsNotEmpty()
-  version: string;
+  version!: string;
 
   @IsNumber()
-  progress: number;
+  progress!: number;
 
   @IsEnum(OtaStatus)
-  status: OtaStatus;
+  status!: OtaStatus;
 
   @IsString()
   @IsOptional()

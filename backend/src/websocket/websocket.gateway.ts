@@ -33,7 +33,7 @@ export class AppWebSocketGateway
     OnModuleDestroy
 {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private readonly logger = new Logger(AppWebSocketGateway.name);
   private readonly clients = new Map<string, WsClient>();

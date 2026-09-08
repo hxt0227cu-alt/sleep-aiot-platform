@@ -9,12 +9,12 @@ export class CertSignRequestDto {
   /** 设备端生成的 PEM 格式 CSR */
   @IsString()
   @IsNotEmpty()
-  csr: string;
+  csr!: string;
 
   /** 设备唯一标识 */
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   /** 硬件序列号 */
   @IsString()

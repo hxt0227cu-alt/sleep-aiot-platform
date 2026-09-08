@@ -15,25 +15,25 @@ export class CreateSleepDiaryDto {
 
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
-  date: string;
+  date!: string;
 
   @IsString()
   @Matches(/^\d{2}:\d{2}$/)
-  bedTime: string;
+  bedTime!: string;
 
   @IsString()
   @Matches(/^\d{2}:\d{2}$/)
-  wakeTime: string;
+  wakeTime!: string;
 
   @IsInt()
   @Min(0)
-  fallAsleepMinutes: number;
+  fallAsleepMinutes!: number;
 
   @IsString()
   @IsIn(['excellent', 'good', 'poor'])
-  quality: string;
+  quality!: string;
 
   @IsString()
   @MaxLength(2000)
-  summary: string;
+  summary!: string;
 }

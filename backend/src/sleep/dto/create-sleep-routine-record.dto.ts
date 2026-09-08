@@ -11,10 +11,10 @@ import { SleepRoutineStepDto } from './sleep-routine-template.dto';
 
 export class CreateSleepRoutineRecordDto {
   @IsDateString()
-  date: string;
+  date!: string;
 
   @IsDateString()
-  startedAt: string;
+  startedAt!: string;
 
   @IsOptional()
   @IsDateString()
@@ -24,8 +24,8 @@ export class CreateSleepRoutineRecordDto {
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => SleepRoutineStepDto)
-  stepsSnapshot: SleepRoutineStepDto[];
+  stepsSnapshot!: SleepRoutineStepDto[];
 
   @IsBoolean()
-  finished: boolean;
+  finished!: boolean;
 }

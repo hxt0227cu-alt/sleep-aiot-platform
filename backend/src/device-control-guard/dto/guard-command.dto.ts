@@ -30,12 +30,12 @@ export class GuardCommandDto {
   /** 设备唯一标识 */
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   /** 指令类型，必须在白名单内 */
   @IsString()
   @IsNotEmpty()
-  command: string;
+  command!: string;
 
   /** 指令参数 */
   @IsOptional()

@@ -87,3 +87,8 @@ ui*.make
 .tmp/
 tmp/
 *.tsbuildinfo
+
+# ts-node 脚本编译产物（源为 scripts/*.ts，构建输出不入库）
+backend/scripts/*.js
+backend/scripts/*.d.ts
+backend/scripts/*.js.map

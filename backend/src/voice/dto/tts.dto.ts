@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 export class TtsDto {
   @IsString()
   @IsNotEmpty()
-  text: string;
+  text!: string;
 
   @IsString()
   @IsOptional()

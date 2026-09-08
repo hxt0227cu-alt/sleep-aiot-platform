@@ -10,19 +10,19 @@ import {
 
 export class SleepRoutineStepDto {
   @IsString()
-  id: string;
+  id!: string;
 
   @IsString()
-  name: string;
+  name!: string;
 
   @IsInt()
-  sortOrder: number;
+  sortOrder!: number;
 
   @IsBoolean()
-  isFixed: boolean;
+  isFixed!: boolean;
 
   @IsBoolean()
-  enabled: boolean;
+  enabled!: boolean;
 }
 
 export class SleepRoutineTemplateDto {
@@ -30,5 +30,5 @@ export class SleepRoutineTemplateDto {
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => SleepRoutineStepDto)
-  steps: SleepRoutineStepDto[];
+  steps!: SleepRoutineStepDto[];
 }

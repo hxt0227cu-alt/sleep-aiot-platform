@@ -9,12 +9,12 @@ export class RegisterDeviceDto {
   @Transform(({ value, obj }) => value ?? obj.device_id)
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   @Transform(({ value, obj }) => value ?? obj.device_name)
   @IsString()
   @IsNotEmpty()
-  deviceName: string;
+  deviceName!: string;
 
   @Transform(({ value, obj }) => value ?? obj.device_type)
   @IsEnum(DeviceType)

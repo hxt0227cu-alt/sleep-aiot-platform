@@ -15,5 +15,5 @@ export class UpdateLightAlarmEnabledDto {
     return value;
   })
   @IsBoolean()
-  enabled: boolean;
+  enabled!: boolean;
 }

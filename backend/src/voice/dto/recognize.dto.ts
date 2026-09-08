@@ -5,7 +5,7 @@ export class RecognizeDto {
   @IsString()
   @IsNotEmpty()
   @Transform(({ value, obj }) => value ?? obj.device_id)
-  deviceId: string;
+  deviceId!: string;
 
   @IsString()
   @IsOptional()

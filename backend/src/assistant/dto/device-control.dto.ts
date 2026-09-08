@@ -5,11 +5,11 @@ export class DeviceControlDto {
   @Transform(({ value, obj }) => value ?? obj.device_id)
   @IsString()
   @IsNotEmpty()
-  deviceId: string;
+  deviceId!: string;
 
   @IsString()
   @IsNotEmpty()
-  text: string;
+  text!: string;
 
   @IsString()
   @IsOptional()

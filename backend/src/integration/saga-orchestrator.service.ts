@@ -72,7 +72,12 @@ export class SagaOrchestratorService {
 
           // 执行补偿（回滚已执行的步骤）
           instance.status = 'compensating';
-          await this.compensate(instance, definition);
+          // 补偿流程只读取步骤定义并按已存结果回滚，SagaDefinition<T> 在此
+          // 以 unknown 视之是安全的（补偿回调接收的即为 unknown 历史结果）。
+          await this.compensate(
+            instance,
+            definition as SagaDefinition<unknown>,
+          );
 
           instance.status = 'failed';
           instance.error = stepError.message;
