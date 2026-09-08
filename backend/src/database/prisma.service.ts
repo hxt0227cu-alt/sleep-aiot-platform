@@ -6,10 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
-import {
-  computeConnectionLimit,
-  requiresPgBouncer,
-} from './connection-budget';
+import { computeConnectionLimit, requiresPgBouncer } from './connection-budget';
 import { makeTenantQueryExtension } from '../tenant/tenant-scope';
 
 /**

@@ -1,7 +1,4 @@
-import {
-  computeConnectionLimit,
-  requiresPgBouncer,
-} from './connection-budget';
+import { computeConnectionLimit, requiresPgBouncer } from './connection-budget';
 
 describe('数据库连接预算（ADR-016）', () => {
   describe('computeConnectionLimit', () => {
