@@ -154,10 +154,6 @@ jobs:
           EVIDENCE_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
           EVIDENCE_OUTPUT: ${{ runner.temp }}/flink-event-time.json
           CLICKHOUSE_PASSWORD: replace-with-random-local-password
-        # 冒烟为环境敏感型长跑（compose 起 6 个容器 + Flink 事件时间窗口），
-        # 允许失败时自动重试 1 次；脚本 runId 已按次唯一，重试数据完全隔离。
-        retry-on: failure
-        retry-on-max-attempts: 2
         run: |
           docker compose \
             --env-file platform/local/.env.example \
