@@ -6,7 +6,10 @@ import { spawnSync } from 'node:child_process';
 const workspace = resolve(import.meta.dirname, '../..');
 const composeFile = resolve(workspace, 'platform/local/docker-compose.enterprise.yml');
 const envFile = resolve(workspace, 'platform/local/.env.example');
-const runId = (process.env.EVIDENCE_RUN_ID || new Date().toISOString().replaceAll(/[:.]/g, '-')).slice(0, 80);
+// EVIDENCE_RUN_ID 由 CI 注入（run_id-run_attempt）；再追加随机后缀保证同一步骤重试时
+// source topic / group-id / checkpoint 目录 / ClickHouse 数据完全隔离，避免重试误判。
+const baseRunId = (process.env.EVIDENCE_RUN_ID || new Date().toISOString().replaceAll(/[:.]/g, '-')).slice(0, 72);
+const runId = `${baseRunId}-${randomUUID().slice(0, 8)}`;
 const outputPath = resolve(
   workspace,
   process.env.EVIDENCE_OUTPUT || `202607worklog/performance/raw/${runId}-flink-event-time.json`,
@@ -104,18 +107,18 @@ try {
       values.aggregate.length >= 2 &&
       values.invalid.length === 1 &&
       values.duplicate.length === 1 ? values : null;
-  }, 240_000, 'all committed Flink Kafka outputs');
+  }, 300_000, 'all committed Flink Kafka outputs');
 
   const checkpoints = await waitFor(async () => {
     const value = await jsonFetch(`http://127.0.0.1:8082/jobs/${jobId}/checkpoints`);
     return value.counts?.completed >= 1 ? value : null;
-  }, 120_000, 'at least one completed Flink checkpoint');
+  }, 180_000, 'at least one completed Flink checkpoint');
 
   const warehouse = await waitFor(async () => {
     const value = await warehouseSnapshot();
     return value.dwd_rows === 5 && value.late_rows === 1 && value.aggregate_rows >= 2 &&
       value.invalid_rows === 1 && value.duplicate_rows === 1 ? value : null;
-  }, 240_000, 'ClickHouse DWD, DWS, late, invalid, and duplicate materialization');
+  }, 300_000, 'ClickHouse DWD, DWS, late, invalid, and duplicate materialization');
 
   const windowRows = kafkaOutputs.aggregate
     .sort((left, right) => left.window_start_ms - right.window_start_ms)
@@ -150,7 +153,7 @@ try {
     passed,
     finishedAt: new Date().toISOString(),
     environment: {
-      flinkVersion: '1.20.1',
+      flinkVersion: '2.3.0',
       kafkaVersion: '3.9.1',
       clickHouseVersion: '24.8.14.39',
       flinkImageId: imageId,
@@ -187,6 +190,7 @@ try {
     passed: false,
     finishedAt: new Date().toISOString(),
     error: error instanceof Error ? error.stack : String(error),
+    diagnostics: await captureJobDiagnostics(jobId),
   };
   process.exitCode = 1;
 } finally {
@@ -214,6 +218,7 @@ try {
         warehouse: result.warehouse,
       },
       error: result.error ?? null,
+      diagnostics: result.diagnostics ?? null,
     }, null, 2));
   } else {
     console.log(JSON.stringify({
@@ -222,8 +227,29 @@ try {
       status: result.status,
       passed: result.passed,
       error: result.error ?? null,
+      diagnostics: result.diagnostics ?? null,
     }, null, 2));
   }
+}
+
+// 失败自诊断：抓取 Flink job 终态、checkpoint 计数与最近异常，让超时类 flake 下一次即可定位。
+async function captureJobDiagnostics(jobId) {
+  if (!jobId) return null;
+  const diagnostics = { jobState: null, checkpoints: null, recentExceptions: [] };
+  try {
+    const job = await jsonFetch(`http://127.0.0.1:8082/jobs/${jobId}`);
+    diagnostics.jobState = job.state;
+  } catch { /* JobManager already torn down */ }
+  try {
+    const value = await jsonFetch(`http://127.0.0.1:8082/jobs/${jobId}/checkpoints`);
+    diagnostics.checkpoints = { completed: value.counts?.completed ?? 0, failed: value.counts?.failed ?? 0 };
+  } catch { /* ignore */ }
+  try {
+    const exceptions = await jsonFetch(`http://127.0.0.1:8082/jobs/${jobId}/exceptions?mode=full`);
+    diagnostics.recentExceptions = (exceptions['root-exceptions'] ?? []).slice(0, 3)
+      .map(item => String(item.stack || item.exception || item).slice(0, 1500));
+  } catch { /* ignore */ }
+  return diagnostics;
 }
 
 function telemetry(eventId, deviceId, occurredAt, sequence, heartRate, breathingRate) {

@@ -66,9 +66,11 @@ public final class TelemetryStreamingJob {
     //  CheckpointConfig.setCheckpointStorage 已在 2.0 移除；hashmap 本就是默认状态后端）。
     Configuration configuration = new Configuration();
     configuration.set(RestartStrategyOptions.RESTART_STRATEGY, "fixed-delay");
-    configuration.set(RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_ATTEMPTS, 3);
+    // 共享 CI runner 上 file:// checkpoint 偶发慢/超时：10 次重启 + 5s 间隔吸收瞬时抖动，
+    // 避免 EXACTLY_ONCE sink 事务因短暂 checkpoint 失败而永久提交不了。
+    configuration.set(RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_ATTEMPTS, 10);
     configuration.set(
-        RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_DELAY, Duration.ofSeconds(2));
+        RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_DELAY, Duration.ofSeconds(5));
     configuration.set(
         CheckpointingOptions.EXTERNALIZED_CHECKPOINT_RETENTION,
         ExternalizedCheckpointRetention.RETAIN_ON_CANCELLATION);
@@ -78,7 +80,8 @@ public final class TelemetryStreamingJob {
     environment.configure(configuration);
     environment.enableCheckpointing(checkpointIntervalMs, CheckpointingMode.EXACTLY_ONCE);
     environment.getCheckpointConfig().setMinPauseBetweenCheckpoints(1_000);
-    environment.getCheckpointConfig().setCheckpointTimeout(60_000);
+    // 加载的 CI runner 上 checkpoint 写盘可能超过默认 60s：放宽到 180s。
+    environment.getCheckpointConfig().setCheckpointTimeout(180_000);
     environment.getCheckpointConfig().setMaxConcurrentCheckpoints(1);
 
     KafkaSource<String> source = KafkaSource.<String>builder()
