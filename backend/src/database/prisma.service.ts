@@ -4,10 +4,10 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../generated/prisma/client';
 import {
   computeConnectionLimit,
-  withConnectionLimit,
   requiresPgBouncer,
 } from './connection-budget';
 import { makeTenantQueryExtension } from '../tenant/tenant-scope';
@@ -43,13 +43,17 @@ export class PrismaService
       maxReplicas,
     });
 
-    const finalUrl = databaseUrl
-      ? withConnectionLimit(databaseUrl, limit)
-      : databaseUrl;
-    const options = databaseUrl
-      ? { datasources: { db: { url: finalUrl } } }
-      : {};
-    super(options);
+    // Prisma ORM v7：datasources 选项已移除，强制 driver adapter。
+    // ADR-016 连接预算经 PrismaPg 的 pg 池 max 生效，连接串不再注入
+    // connection_limit/pool_timeout/connect_timeout（v5 引擎专用参数）。
+    const adapter = databaseUrl
+      ? new PrismaPg({
+          connectionString: databaseUrl,
+          max: limit,
+          connectionTimeoutMillis: 10_000,
+        })
+      : undefined;
+    super({ adapter: adapter as never });
     this.connectionLimit = limit;
 
     if (requiresPgBouncer(limit)) {

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { TenantService } from '../tenant/tenant.service';
 import { OutboxService } from '../integration/outbox.service';
 import { AgentDispatcherService } from '../integration/agent-dispatcher.service';

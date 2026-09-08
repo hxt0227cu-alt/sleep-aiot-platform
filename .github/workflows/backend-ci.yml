@@ -94,6 +94,10 @@ jobs:
       - name: Ensure postgresql-client (pg_dump / pg_restore)
         run: command -v pg_dump >/dev/null 2>&1 || (sudo apt-get update -y && sudo apt-get install -y postgresql-client)
 
+      - name: Regenerate Prisma client (v7 Rust-free client, anti-drift)
+        working-directory: ./backend
+        run: pnpm exec prisma generate
+
       - name: Run tests
         working-directory: ./backend
         env:
