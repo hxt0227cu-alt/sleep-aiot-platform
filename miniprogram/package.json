@@ -71,7 +71,7 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-vue": "^8.0.0",
     "typescript": "^5.9.3",
-    "webpack": "5.91.0"
+    "webpack": "5.110.3"
   },
   "overrides": {
     "@babel/plugin-transform-modules-systemjs": "7.29.4",
