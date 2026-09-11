@@ -49,7 +49,7 @@
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
-    "dotenv": "^16",
+    "dotenv": "^17",
     "express": "^5.2.1",
     "ioredis": "^6.0.0",
     "mqtt": "^5.15.0",
