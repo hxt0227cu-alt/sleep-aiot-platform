@@ -51,7 +51,7 @@
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
-    "ioredis": "^5.10.1",
+    "ioredis": "^6.0.0",
     "lucide-react": "1.41.0",
     "motion": "13.2.0",
     "mqtt": "^5.15.1",
