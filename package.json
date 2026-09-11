@@ -75,7 +75,7 @@
   "devDependencies": {
     "@capacitor/android": "^7.6.5",
     "@capacitor/cli": "^7.6.5",
-    "@capacitor/core": "^7.6.5",
+    "@capacitor/core": "^8.5.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
