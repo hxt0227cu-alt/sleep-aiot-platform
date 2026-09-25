@@ -13,7 +13,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <flink.version>2.3.0</flink.version>
     <flink.kafka.version>5.0.0-2.2</flink.kafka.version>
-    <jackson.version>2.22.2</jackson.version>
+    <jackson.version>2.22.3</jackson.version>
     <kafka.clients.version>3.9.2</kafka.clients.version>
     <lz4.version>1.8.1</lz4.version>
     <snappy.version>1.1.10.8</snappy.version>
