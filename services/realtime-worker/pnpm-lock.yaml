@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@clickhouse/client':
-        specifier: ^1.11.2
-        version: 1.23.1
+        specifier: ^1.24.1
+        version: 1.24.1
       ajv:
         specifier: ^8.17.1
         version: 8.20.0
@@ -36,8 +36,8 @@ importers:
 
 packages:
 
-  '@clickhouse/client@1.23.1':
-    resolution: {integrity: sha512-vs3/Zc1dHvT171btW5nMoPsPCJ6QVJ5pp7obxzO5sjqwFx/jjz9wwCAqcFOdc2DhprugDBaVn+4dVY8hG3A9nw==}
+  '@clickhouse/client@1.24.1':
+    resolution: {integrity: sha512-1kjKJ4uuD4J9JlRU4CpwEGfecstvtoGreBorhh7CxgB7r7PL54DCLD6gajKZhLCri84XlyD3CUxEm6rYkKC+dA==}
     engines: {node: '>=20'}
 
   '@opentelemetry/api@1.9.1':
@@ -216,7 +216,7 @@ packages:
 
 snapshots:
 
-  '@clickhouse/client@1.23.1': {}
+  '@clickhouse/client@1.24.1': {}
 
   '@opentelemetry/api@1.9.1': {}
 
